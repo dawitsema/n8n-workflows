@@ -1,0 +1,739 @@
+{
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "zoom-webinar-attendee",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "8a798a47-0af8-419e-8834-e6eaadff4add",
+            "name": "Webhook: Zoom Attendee Event",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                -2768,
+                1264
+            ],
+            "webhookId": "zoom-webinar-attendee"
+        },
+        {
+            "parameters": {
+                "jsCode": "const body = $input.first().json.body || $input.first().json;\n\nconst isValidation = body.event === 'endpoint.url_validation';\nconst plainToken = body?.payload?.plainToken || '';\n\nlet encryptedToken = '';\nif (isValidation) {\n  const crypto = require('crypto');\n  const secretToken = 'rbSHpyycQLCqLKW22BY4Lw';\n  encryptedToken = crypto\n    .createHmac('sha256', secretToken)\n    .update(plainToken)\n    .digest('hex');\n}\n\nreturn [{ json: { isValidation, plainToken, encryptedToken, originalBody: body } }];"
+            },
+            "id": "e8f6f8c8-2cd8-4404-a6eb-250beb317412",
+            "name": "Code: Handle Zoom Challenge",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -2544,
+                1264
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "boolean": [
+                        {
+                            "value1": "={{ $json.isValidation }}",
+                            "value2": true
+                        }
+                    ]
+                }
+            },
+            "id": "c32ba104-9745-4bb1-bd7c-83d7f6c447d2",
+            "name": "IF: Is Validation?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                -2320,
+                1264
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ JSON.stringify({ plainToken: $json.plainToken, encryptedToken: $json.encryptedToken }) }}",
+                "options": {}
+            },
+            "id": "0d1d0356-ddda-41d8-925e-ef6585b6f96f",
+            "name": "Respond: Zoom Validation",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                -2096,
+                1168
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "noData",
+                "options": {}
+            },
+            "id": "50d98ae3-5e67-4b21-97f2-2384d73bc8d7",
+            "name": "Respond: OK (Real Event)",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                -2096,
+                1360
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const body = $('Code: Handle Zoom Challenge').first().json.originalBody;\n\nconst eventType = body.event;\nconst payload = body.payload || {};\nconst participant = payload.object?.participant || {};\nconst webinarObj = payload.object || {};\n\nreturn [{ json: {\n  event_type: eventType,\n  webinar_id: String(webinarObj.id || ''),\n  webinar_name: webinarObj.topic || '',\n  webinar_start_time: webinarObj.start_time || '',\n  attendee_email: participant.email || participant.user_email || '',\n  attendee_name: participant.user_name || '',\n  attendee_join_time: participant.join_time || new Date().toISOString(),\n  attendee_leave_time: participant.leave_time || '',\n  registrant_id: participant.registrant_id || ''\n}}];"
+            },
+            "id": "88871167-737f-4e9a-9ddd-28108ffd935b",
+            "name": "Code: Parse Zoom Event",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -1872,
+                1360
+            ]
+        },
+        {
+            "parameters": {
+                "dataType": "string",
+                "value1": "={{ $('Code: Parse Zoom Event').item.json.event_type }}",
+                "rules": {
+                    "rules": [
+                        {
+                            "value2": "webinar.participant_joined"
+                        },
+                        {
+                            "value2": "webinar.participant_left",
+                            "output": 1
+                        }
+                    ]
+                },
+                "fallbackOutput": 2
+            },
+            "id": "d19feaa5-3298-414e-bf9d-25b8f163f05f",
+            "name": "Switch: Route Event Type",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 1,
+            "position": [
+                -1424,
+                1328
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{ $('Code: Parse Zoom Event').item.json.attendee_email }}",
+                            "operation": "isNotEmpty"
+                        }
+                    ]
+                }
+            },
+            "id": "ab2941bb-795a-4a2b-9c4e-4137149bf2fe",
+            "name": "IF: Has Email? (Joined)",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                -1200,
+                1264
+            ]
+        },
+        {
+            "parameters": {
+                "url": "={{ 'https://api.close.com/api/v1/lead/?query=email_address:\"' + $json.attendee_email + '\"&_fields=id,display_name,status_id,custom' }}",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpBasicAuth",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "156681c0-150f-4646-85e1-f3bbe4f31981",
+            "name": "HTTP: Close — Find Lead by Email",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                -976,
+                1264
+            ],
+            "alwaysOutputData": true,
+            "retryOnFail": true,
+            "credentials": {
+                "httpBasicAuth": {
+                    "id": "dJmQ0AFSNKMEj05l",
+                    "name": "Close CRM"
+                }
+            },
+            "onError": "continueErrorOutput"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "number": [
+                        {
+                            "value1": "={{ $('HTTP: Close — Find Lead by Email').item.json.total_results }}",
+                            "operation": "larger"
+                        }
+                    ]
+                }
+            },
+            "id": "0ef10745-5f3d-4299-8e58-1ca603fa43f8",
+            "name": "IF: Lead Found in Close?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                -528,
+                1264
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{ $('Code: Parse Zoom Event').item.json.attendee_email }}",
+                            "operation": "isNotEmpty"
+                        }
+                    ]
+                }
+            },
+            "id": "79cc8a43-3083-421d-8e2b-2a247d64a3c2",
+            "name": "IF: Has Email? (Left)",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                -1200,
+                1456
+            ]
+        },
+        {
+            "parameters": {
+                "url": "={{ 'https://api.close.com/api/v1/lead/?query=email_address:\"' + $json.attendee_email + '\"&_fields=id,display_name,status_id,custom' }}",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpBasicAuth",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "ae3dc973-4015-4fab-9de0-5b850d33d339",
+            "name": "HTTP: Close — Find Lead (Left)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                -976,
+                1456
+            ],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "6ORCx5pBolsypKiC",
+                    "name": "Wati Bearer Token"
+                },
+                "httpBasicAuth": {
+                    "id": "dJmQ0AFSNKMEj05l",
+                    "name": "Close CRM"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const parsed = $('Code: Parse Zoom Event').first().json;\nconst closeData = $input.first().json;\n\nconst startTime = new Date(parsed.webinar_start_time);\nconst leaveTime = new Date(parsed.attendee_leave_time);\nconst durationMinutes = Math.round((leaveTime - startTime) / 1000 / 60);\nconst stayedFor30Min = durationMinutes >= 30;\n\nconst leadFound = (closeData.total_results || 0) > 0;\nconst lead = leadFound ? closeData.data[0] : null;\nconst qualifiesForNote = stayedFor30Min && leadFound;\n\nreturn [{\n  json: {\n    attendee_name: parsed.attendee_name,\n    attendee_email: parsed.attendee_email,\n    webinar_name: parsed.webinar_name,\n    webinar_start_time: parsed.webinar_start_time,\n    join_time: parsed.attendee_join_time,\n    leave_time: parsed.attendee_leave_time,\n    duration_minutes: durationMinutes,\n    stayed_30_min: stayedFor30Min,\n    lead_found: leadFound,\n    close_lead_id: lead ? lead.id : null,\n    close_lead_name: lead ? lead.display_name : null,\n    qualifies_for_note: qualifiesForNote\n  }\n}];"
+            },
+            "id": "3d7ace2e-dc46-4f87-a466-5d0b75ce99cd",
+            "name": "Code: Calculate Duration",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -528,
+                1456
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "760c8ba3-b3de-4d27-8b64-411b68de09ac",
+                            "leftValue": "={{ $('Code: Calculate Duration').item.json.duration_minutes }}",
+                            "rightValue": 30,
+                            "operator": {
+                                "type": "number",
+                                "operation": "gte"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                -304,
+                1456
+            ],
+            "id": "3ade3f5e-a7f0-43cb-8464-bb0116a637d6",
+            "name": "IF: Stayed 30+ Min & Lead Found?"
+        },
+        {
+            "parameters": {
+                "method": "PUT",
+                "url": "=https://api.close.com/api/v1/lead/{{ $('HTTP: Close — Find Lead (Left)').item.json.data[0].id }}/",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpBasicAuth",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify({\n  \"status_id\": \"stat_m9qjalXyj8mWScg2LeNpU9NJYoKJuCWVAbPthLVOoYf\",\n  \"custom.cf_ZzZlNhGFS4Jlz4DMrARYCoAY22qDKABLuHONGCrvXhb\": \"Yes\"\n}) }}",
+                "options": {}
+            },
+            "id": "d308da30-312e-42a6-a1a7-ddea276cd102",
+            "name": "Close – Update Status)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                -80,
+                1360
+            ],
+            "credentials": {
+                "httpBasicAuth": {
+                    "id": "dJmQ0AFSNKMEj05l",
+                    "name": "Close CRM"
+                }
+            },
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "method": "PUT",
+                "url": "=https://api.close.com/api/v1/lead/{{ $('HTTP: Close — Find Lead by Email').item.json.data[0].id }}/",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpBasicAuth",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify({\n  \"status_id\": \"stat_m9qjalXyj8mWScg2LeNpU9NJYoKJuCWVAbPthLVOoYf\",\n  \"custom.cf_ZzZlNhGFS4Jlz4DMrARYCoAY22qDKABLuHONGCrvXhb\": \"Yes\"\n}) }}",
+                "options": {}
+            },
+            "id": "b28ab372-8840-472e-80b1-5b7587331f24",
+            "name": "Close – Update Joined Status",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                -304,
+                1264
+            ],
+            "credentials": {
+                "httpBasicAuth": {
+                    "id": "dJmQ0AFSNKMEj05l",
+                    "name": "Close CRM"
+                }
+            },
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "method": "PUT",
+                "url": "=https://api.close.com/api/v1/lead/{{ $('HTTP: Close — Find Lead (Left)').item.json.data[0].id }}/",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpBasicAuth",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify({\n  \"status_id\": \"stat_m9qjalXyj8mWScg2LeNpU9NJYoKJuCWVAbPthLVOoYf\",\n  \"custom.cf_ZzZlNhGFS4Jlz4DMrARYCoAY22qDKABLuHONGCrvXhb\": \"Yes\"\n}) }}",
+                "options": {}
+            },
+            "id": "f3b856bd-aa8b-4dd8-9349-b4eda4e4fe25",
+            "name": "Close – Update Status on Left",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                -80,
+                1552
+            ],
+            "credentials": {
+                "httpBasicAuth": {
+                    "id": "dJmQ0AFSNKMEj05l",
+                    "name": "Close CRM"
+                }
+            },
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "ffcbde89-1bac-4707-a81d-1c36e1383470",
+                            "leftValue": "={{ $('HTTP: Close — Find Lead (Left)').item.json.data[0].status_id }}",
+                            "rightValue": "stat_JAce318Z1bQ83Xep04YbNZpSY2sVaj3wEJ5LQVmABuR",
+                            "operator": {
+                                "type": "string",
+                                "operation": "notEquals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                -752,
+                1456
+            ],
+            "id": "198dac3d-ea54-4c9c-8af0-e077f4a17d0e",
+            "name": "Isn`t Booked"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "ffcbde89-1bac-4707-a81d-1c36e1383470",
+                            "leftValue": "={{ $json.data[0].status_id }}",
+                            "rightValue": "stat_JAce318Z1bQ83Xep04YbNZpSY2sVaj3wEJ5LQVmABuR",
+                            "operator": {
+                                "type": "string",
+                                "operation": "notEquals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                -752,
+                1264
+            ],
+            "id": "5db423c6-219f-4f5c-aabd-0f4ffb8c2901",
+            "name": "Isn`t Booked1"
+        },
+        {
+            "parameters": {
+                "resource": "tagSubscriber",
+                "operation": "add",
+                "tagId": 21447016,
+                "email": "={{ $('Code: Parse Zoom Event').item.json.attendee_email }}",
+                "additionalFields": {}
+            },
+            "type": "n8n-nodes-base.convertKit",
+            "typeVersion": 1,
+            "position": [
+                -1648,
+                1360
+            ],
+            "id": "4148b3d9-24a3-4d5c-ab27-3db43c745504",
+            "name": "Add a tag webinar-attended",
+            "credentials": {
+                "convertKitApi": {
+                    "id": "FvJ5jXT6LL5kC5x3",
+                    "name": "ConvertKit account"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Webhook: Zoom Attendee Event": {
+            "main": [
+                [
+                    {
+                        "node": "Code: Handle Zoom Challenge",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code: Handle Zoom Challenge": {
+            "main": [
+                [
+                    {
+                        "node": "IF: Is Validation?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "IF: Is Validation?": {
+            "main": [
+                [
+                    {
+                        "node": "Respond: Zoom Validation",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Respond: OK (Real Event)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Respond: OK (Real Event)": {
+            "main": [
+                [
+                    {
+                        "node": "Code: Parse Zoom Event",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code: Parse Zoom Event": {
+            "main": [
+                [
+                    {
+                        "node": "Add a tag webinar-attended",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Switch: Route Event Type": {
+            "main": [
+                [
+                    {
+                        "node": "IF: Has Email? (Joined)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "IF: Has Email? (Left)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "IF: Has Email? (Joined)": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP: Close — Find Lead by Email",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP: Close — Find Lead by Email": {
+            "main": [
+                [
+                    {
+                        "node": "Isn`t Booked1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "IF: Lead Found in Close?": {
+            "main": [
+                [
+                    {
+                        "node": "Close – Update Joined Status",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        },
+        "IF: Has Email? (Left)": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP: Close — Find Lead (Left)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP: Close — Find Lead (Left)": {
+            "main": [
+                [
+                    {
+                        "node": "Isn`t Booked",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code: Calculate Duration": {
+            "main": [
+                [
+                    {
+                        "node": "IF: Stayed 30+ Min & Lead Found?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "IF: Stayed 30+ Min & Lead Found?": {
+            "main": [
+                [
+                    {
+                        "node": "Close – Update Status)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Close – Update Status on Left",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Isn`t Booked": {
+            "main": [
+                [
+                    {
+                        "node": "Code: Calculate Duration",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Isn`t Booked1": {
+            "main": [
+                [
+                    {
+                        "node": "IF: Lead Found in Close?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Add a tag webinar-attended": {
+            "main": [
+                [
+                    {
+                        "node": "Switch: Route Event Type",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "pinData": {
+        "Webhook: Zoom Attendee Event": [
+            {
+                "headers": {
+                    "host": "propertyhussle.app.n8n.cloud",
+                    "user-agent": "Zoom Marketplace/1.0a",
+                    "content-length": "725",
+                    "accept-encoding": "gzip, br",
+                    "cdn-loop": "cloudflare; loops=1; subreqs=1",
+                    "cf-connecting-ip": "134.224.12.55",
+                    "cf-ew-via": "15",
+                    "cf-ipcountry": "US",
+                    "cf-ray": "a215b7e23ab7be76-CMH",
+                    "cf-visitor": "{\"scheme\":\"https\"}",
+                    "cf-worker": "n8n.cloud",
+                    "clientid": "lxXWH2UvTbi6shaRLmmOjQ",
+                    "content-type": "application/json; charset=utf-8",
+                    "traceparent": "00-853f88becd7965eaef3c9eff7c07b41e-9bb9c5d5335e79bc-02",
+                    "x-forwarded-for": "134.224.12.55, 104.23.197.150",
+                    "x-forwarded-host": "propertyhussle.app.n8n.cloud",
+                    "x-forwarded-port": "443",
+                    "x-forwarded-proto": "https",
+                    "x-forwarded-server": "traefik-prod-users-gwc-33-6548f7bf9d-2jzs6",
+                    "x-is-trusted": "yes",
+                    "x-real-ip": "134.224.12.55",
+                    "x-zm-request-id": "bbc5861f_fa65_48d9_8de5_121e6eef9216",
+                    "x-zm-request-timestamp": "1785093171",
+                    "x-zm-signature": "v0=c64e0d14afd796272fe5e223c5a2ce49097644f7bfab41a9329b60aabf0e4159",
+                    "x-zm-trackingid": "EventService_019F9FD8-1FF3-7F0B-B137-1ED475E779A4_6",
+                    "zm-trace-upstream": "Meeting_Web_marketplace-consumer"
+                },
+                "params": {},
+                "query": {},
+                "body": {
+                    "payload": {
+                        "account_id": "kbpLtGDzQema35lwj7M3OQ",
+                        "object": {
+                            "uuid": "/lQpnO6XRrmKJ0IweXXn9g==",
+                            "participant": {
+                                "leave_time": "2026-07-26T19:12:48Z",
+                                "public_ip": "148.252.149.123",
+                                "user_id": "16920576",
+                                "user_name": "Vida Vida",
+                                "registrant_id": "L54TqO8QRCaBQB1N7W3Vpw",
+                                "participant_user_id": "",
+                                "id": "",
+                                "leave_reason": "left the meeting. Reason : Host closed the meeting.",
+                                "email": "vankomah1490@gmail.com",
+                                "private_ip": "10.206.225.76",
+                                "participant_uuid": "17BE1C95-4B37-CAAA-893E-B1B930AB8B0C"
+                            },
+                            "id": "99830464347",
+                            "type": 5,
+                            "topic": "Property Funding Masterclass",
+                            "host_id": "SMVgdPXiSuCvOTUP4kEFnQ",
+                            "duration": 90,
+                            "start_time": "2026-07-26T17:55:26Z",
+                            "timezone": "Europe/London"
+                        }
+                    },
+                    "event_ts": 1785093171290,
+                    "event": "webinar.participant_left"
+                },
+                "webhookUrl": "https://propertyhussle.app.n8n.cloud/webhook/zoom-webinar-attendee",
+                "executionMode": "production"
+            }
+        ]
+    },
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "8b0968e82080ca3a539101af649065d63cbf690891f13b85ab9a36398e21d5e8"
+    }
+}
