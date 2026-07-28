@@ -1,0 +1,690 @@
+{
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "7e06b351-df50-4f6a-8dcf-726c6d021f14",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2.1,
+            "position": [
+                544,
+                368
+            ],
+            "id": "3edd98af-203e-4d27-b69c-eb6cc10f0953",
+            "name": "Webhook",
+            "webhookId": "7e06b351-df50-4f6a-8dcf-726c6d021f14"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "7255015a-d3af-4a7a-a7f0-b218dfeb3860",
+                            "leftValue": "={{ $json.data.values.send_email[0].option.title }}",
+                            "rightValue": "Yes",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                992,
+                368
+            ],
+            "id": "820c0dc7-03cf-4cd0-9b5d-38e1262eb669",
+            "name": "Send Email = True"
+        },
+        {
+            "parameters": {
+                "rules": {
+                    "values": [
+                        {
+                            "conditions": {
+                                "options": {
+                                    "caseSensitive": true,
+                                    "leftValue": "",
+                                    "typeValidation": "strict",
+                                    "version": 3
+                                },
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $('Get Attio Record by ID').item.json.data.values.lead_owner[0].status.title }}",
+                                        "rightValue": "Toni",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals"
+                                        },
+                                        "id": "98dae2a8-ce88-4123-8579-10dd5c181ef0"
+                                    }
+                                ],
+                                "combinator": "and"
+                            },
+                            "renameOutput": true,
+                            "outputKey": "Toni Path"
+                        },
+                        {
+                            "conditions": {
+                                "options": {
+                                    "caseSensitive": true,
+                                    "leftValue": "",
+                                    "typeValidation": "strict",
+                                    "version": 3
+                                },
+                                "conditions": [
+                                    {
+                                        "id": "1a894564-195d-4090-b4eb-1f3fa0534f49",
+                                        "leftValue": "={{ $('Get Attio Record by ID').item.json.data.values.lead_owner[0].status.title }}",
+                                        "rightValue": "Stefan",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals",
+                                            "name": "filter.operator.equals"
+                                        }
+                                    }
+                                ],
+                                "combinator": "and"
+                            },
+                            "renameOutput": true,
+                            "outputKey": "Stefan Path"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 3.4,
+            "position": [
+                1568,
+                368
+            ],
+            "id": "86abe78a-f975-4daf-b450-f1321c1b300b",
+            "name": "Toni oder Stefan"
+        },
+        {
+            "parameters": {
+                "toRecipients": "={{ $('Get Attio Record by ID').item.json.data.values.email_addresses[0].email_address }}",
+                "subject": "=Frage zur {{ $('Get Attio Record by ID').item.json.data.values.name[0].first_name }}",
+                "bodyContent": "=Guten Tag {{ $('Message a model').item.json.content[0].text }} {{ $('Get Attio Record by ID').item.json.data.values.name[0].first_name }} \n\nich hoffe, Ihnen geht es gut soweit. Mein Name ist Stoyan, Gründer von Joblora.\n\nIch wollte mal kurz nachfragen, wie die Besetzung der {{ $('Get Attio Record by ID').item.json.data.values.job_title[0].value }} Stelle in aktuell läuft?\nIn Ihrer Region dauert nämlich eine ähnliche Besetzung aktuell im Schnitt 72 Tage. Woher\nweiß ich das?\n\nWir haben im letzten Quartal 7 vergleichbare Positionen bei technischen Betrieben in Ihrer\nRegion in 7–34 Tagen besetzt, ohne Jobportale und 50% günstiger als klassische\nAgenturen.\n\nWir fokussieren uns dabei ausschließlich auf technische Stellen.\n\n(Servicetechniker:in,Elektriker:in, Anlagenmechaniker:in)\n\nIch habe tatsächlich auch bei uns geschaut und hätte einen Kandidaten, der zu der Stelle\npassen könnte, aus (City).\nGuten Tag {{ $('Message a model').item.json.content[0].text }} {{ $('Get Attio Record by ID').item.json.data.values.name[0].first_name }} \n\nich hoffe, Ihnen geht es gut soweit. Mein Name ist Stoyan, Gründer von Joblora.\n\nIch wollte mal kurz nachfragen, wie die Besetzung der {{ $('Get Attio Record by ID').item.json.data.values.job_title[0].value }} Stelle in aktuell läuft?\nIn Ihrer Region dauert nämlich eine ähnliche Besetzung aktuell im Schnitt 72 Tage. Woher\nweiß ich das?\n\nWir haben im letzten Quartal 7 vergleichbare Positionen bei technischen Betrieben in Ihrer\nRegion in 7–34 Tagen besetzt, ohne Jobportale und 50% günstiger als klassische\nAgenturen.\n\nWir fokussieren uns dabei ausschließlich auf technische Stellen.\n\n(Servicetechniker:in,Elektriker:in, Anlagenmechaniker:in)\n\nIch habe tatsächlich auch bei uns geschaut und hätte einen Kandidaten, der zu der Stelle\npassen könnte, aus (City).\n\nIst das generell ein Thema für Sie oder eher weniger?\n\nMehr Infos unter: www.joblora.de\nMehr Infos zum Datenschutz? Finden Sie hier: joblora.ai/datenschutzerklaerung/\n\nSie wünschen keine weitere Kontaktaufnahme? Antworten Sie bitte mit „STOP“. Wir werden\nIhre Kontaktdaten umgehend für zukünftige Kontaktaufnahmen löschen.\n\nMit freundlichen Grüßen,\n\nStoyan B. Ivanov  \nCEO & Founder, Joblora\n\nPhone: +49 431 547 842 99  \nEmail: stoyan@joblora.de  \nLocation: Schauenburger Str. 116, 24118 Kiel\nIst das generell ein Thema für Sie oder eher weniger?\n\nMehr Infos unter: www.joblora.de\nMehr Infos zum Datenschutz? Finden Sie hier:joblora.ai/datenschutzerklaerung/ \n\nSie wünschen keine weitere Kontaktaufnahme? Antworten Sie bitte mit „STOP“. Wir werden\nIhre Kontaktdaten umgehend für zukünftige Kontaktaufnahmen löschen.",
+                "additionalFields": {
+                    "from": "hello@joblora.de"
+                }
+            },
+            "type": "n8n-nodes-base.microsoftOutlook",
+            "typeVersion": 2,
+            "position": [
+                1792,
+                272
+            ],
+            "id": "34f67be5-8aa6-4079-97cd-bb3487a8b35c",
+            "name": "Toni Inbox",
+            "webhookId": "a090f9c6-b5b4-4755-880b-5b4ba33c6d60",
+            "credentials": {
+                "microsoftOutlookOAuth2Api": {
+                    "id": "VoBscLsHaiPx75zJ",
+                    "name": "Microsoft Outlook account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "toRecipients": "={{ $('Get Attio Record by ID').item.json.data.values.email_addresses[0].email_address }}",
+                "subject": "=Guten Tag {{ $('Get Attio Record by ID').item.json.data.values.name[0].first_name }}",
+                "bodyContent": "=Guten Tag {{ $('Message a model').item.json.content[0].text }} {{ $('Get Attio Record by ID').item.json.data.values.name[0].first_name }} \n\nIhre Stelle als {{ $('Get Attio Record by ID').item.json.data.values.normalized_job_post[0].value }} ist seit {{ $('Get Attio Record by ID').item.json.data.values.date[0].value }} online.\n\nIn Ihrer Region dauert die Besetzung aktuell im Schnitt 92 Tage.\n\nWir haben im letzten Quartal 7 vergleichbare Positionen bei Kunden in Ihrer Region in 7–34 Tagen besetzt – ohne klassische Jobportale und günstiger als Social-Media-Kampagnen.  \n\nIst das für Sie aktuell ein Thema?\n\n- Stefan",
+                "additionalFields": {}
+            },
+            "type": "n8n-nodes-base.microsoftOutlook",
+            "typeVersion": 2,
+            "position": [
+                1792,
+                464
+            ],
+            "id": "99718db9-5aa3-4d93-8d80-be459ed818fe",
+            "name": "Stefan Inbox",
+            "webhookId": "a090f9c6-b5b4-4755-880b-5b4ba33c6d60",
+            "credentials": {
+                "microsoftOutlookOAuth2Api": {
+                    "id": "VoBscLsHaiPx75zJ",
+                    "name": "Microsoft Outlook account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "url": "=https://api.attio.com/v2/objects/people/records/{{ $json.body }}",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "d87c5516-de1c-44df-bf8f-f55d5c9af926",
+            "name": "Get Attio Record by ID",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                768,
+                368
+            ],
+            "retryOnFail": true,
+            "maxTries": 5,
+            "waitBetweenTries": 3000,
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "yfmWdCbQCKtJToF2",
+                    "name": "Header Auth account"
+                }
+            },
+            "onError": "continueErrorOutput"
+        },
+        {
+            "parameters": {
+                "modelId": {
+                    "__rl": true,
+                    "value": "claude-sonnet-4-6",
+                    "mode": "list",
+                    "cachedResultName": "claude-sonnet-4-6"
+                },
+                "messages": {
+                    "values": [
+                        {
+                            "content": "=Du bist ein Namensklassifikator. Deine einzige Aufgabe ist es, anhand eines Vornamens das korrekte deutsche Anrede-Präfix zu bestimmen.\nRegeln:\n\nIst der Vorname männlich → antworte ausschließlich mit: Herr\nIst der Vorname weiblich → antworte ausschließlich mit: Frau\nGib nichts anderes aus. Keine Erklärung, keinen Punkt, keine Leerzeichen davor oder danach, kein Kommentar.\n\nBeispiele:\nVornameAusgabeThomasHerrSandraFrauMichaelHerrSabineFrauKlausHerrAishaFrauLucaHerrValentinaFrau\nWichtig: Deine Antwort besteht immer aus genau einem Wort: entweder Herr oder Frau. Nichts sonst. Kein Satzzeichen, keine Erklärung, kein Leerzeichen.\nVorname: {{ $json.data.values.name[0].first_name }} "
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.anthropic",
+            "typeVersion": 1,
+            "position": [
+                1216,
+                368
+            ],
+            "id": "186205ee-788f-421d-ad2d-4a989cd01a4c",
+            "name": "Message a model",
+            "credentials": {
+                "anthropicApi": {
+                    "id": "0b1wY657Af7P2Kqd",
+                    "name": "Anthropic account 2"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Get Attio Record by ID",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Send Email = True": {
+            "main": [
+                [
+                    {
+                        "node": "Message a model",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Toni oder Stefan": {
+            "main": [
+                [
+                    {
+                        "node": "Toni Inbox",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Stefan Inbox",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Attio Record by ID": {
+            "main": [
+                [
+                    {
+                        "node": "Send Email = True",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Message a model": {
+            "main": [
+                [
+                    {
+                        "node": "Toni oder Stefan",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "pinData": {
+        "Webhook": [
+            {
+                "headers": {
+                    "host": "joblora.app.n8n.cloud",
+                    "user-agent": "Attio Workflows",
+                    "content-length": "37",
+                    "accept": "*/*",
+                    "accept-encoding": "gzip, br",
+                    "accept-language": "*",
+                    "cdn-loop": "cloudflare; loops=1; subreqs=1",
+                    "cf-connecting-ip": "35.241.222.75",
+                    "cf-ew-via": "15",
+                    "cf-ipcountry": "BE",
+                    "cf-ray": "a1eb0fa118c96692-AMS",
+                    "cf-visitor": "{\"scheme\":\"https\"}",
+                    "cf-worker": "n8n.cloud",
+                    "content-type": "text/plain;charset=UTF-8",
+                    "sec-fetch-mode": "cors",
+                    "traceparent": "00-d78b482d026916c540a6532ab86483f5-78fbedc0d4fe8722-01",
+                    "tracestate": "trace_level=30",
+                    "x-forwarded-for": "35.241.222.75, 172.71.102.166",
+                    "x-forwarded-host": "joblora.app.n8n.cloud",
+                    "x-forwarded-port": "443",
+                    "x-forwarded-proto": "https",
+                    "x-forwarded-server": "traefik-prod-users-gwc-92-f87ff8496-6mjds",
+                    "x-is-trusted": "yes",
+                    "x-real-ip": "35.241.222.75"
+                },
+                "params": {},
+                "query": {},
+                "body": "a0103505-09e8-4247-b614-39821529cfc2 ",
+                "webhookUrl": "https://joblora.app.n8n.cloud/webhook/7e06b351-df50-4f6a-8dcf-726c6d021f14",
+                "executionMode": "production"
+            }
+        ],
+        "Get Attio Record by ID": [
+            {
+                "data": {
+                    "id": {
+                        "workspace_id": "b28b2fff-8c34-4612-8927-6c38cc63d99d",
+                        "object_id": "a0bac78b-7dba-478c-a259-6ed3e2af3dad",
+                        "record_id": "a0103505-09e8-4247-b614-39821529cfc2"
+                    },
+                    "created_at": "2026-03-25T15:39:20.480000000Z",
+                    "web_url": "https://app.attio.com/joblora-gmb-h/person/a0103505-09e8-4247-b614-39821529cfc2",
+                    "values": {
+                        "record_id": [
+                            {
+                                "active_from": "2026-03-25T15:39:20.494000000Z",
+                                "active_until": null,
+                                "created_by_actor": {
+                                    "type": "system",
+                                    "id": null
+                                },
+                                "value": "a0103505-09e8-4247-b614-39821529cfc2",
+                                "attribute_type": "text"
+                            }
+                        ],
+                        "name": [
+                            {
+                                "active_from": "2026-03-25T15:39:20.654000000Z",
+                                "active_until": null,
+                                "created_by_actor": {
+                                    "type": "system",
+                                    "id": null
+                                },
+                                "first_name": "Stoyan",
+                                "last_name": "Ivanov",
+                                "full_name": "Stoyan Ivanov",
+                                "attribute_type": "personal-name"
+                            }
+                        ],
+                        "email_addresses": [
+                            {
+                                "active_from": "2026-03-25T15:39:20.618000000Z",
+                                "active_until": null,
+                                "created_by_actor": {
+                                    "type": "system",
+                                    "id": null
+                                },
+                                "original_email_address": "t.iva@hotmail.com",
+                                "email_address": "dawitsema@outlook.com",
+                                "email_domain": "hotmail.com",
+                                "email_root_domain": "hotmail.com",
+                                "email_local_specifier": "t.iva",
+                                "attribute_type": "email-address"
+                            }
+                        ],
+                        "description": [],
+                        "company": [],
+                        "job_title": [
+                            {
+                                "active_from": "2026-04-29T07:38:12.496000000Z",
+                                "active_until": null,
+                                "created_by_actor": {
+                                    "type": "workspace-member",
+                                    "id": "7ecfc396-2fcc-4b1a-844d-358653471664"
+                                },
+                                "value": "Anlagenmechaniker",
+                                "attribute_type": "text"
+                            }
+                        ],
+                        "avatar_url": [],
+                        "phone_numbers": [],
+                        "primary_location": [],
+                        "angellist": [],
+                        "facebook": [],
+                        "instagram": [],
+                        "linkedin": [],
+                        "twitter": [],
+                        "twitter_follower_count": [],
+                        "first_calendar_interaction": [
+                            {
+                                "active_from": "2026-03-25T15:39:20.978000000Z",
+                                "active_until": null,
+                                "created_by_actor": {
+                                    "type": "system",
+                                    "id": null
+                                },
+                                "interaction_type": "meeting",
+                                "interacted_at": "2025-07-30T09:00:00.000000000Z",
+                                "owner_actor": {
+                                    "type": "workspace-member",
+                                    "id": "7ecfc396-2fcc-4b1a-844d-358653471664"
+                                },
+                                "attribute_type": "interaction"
+                            }
+                        ],
+                        "last_calendar_interaction": [
+                            {
+                                "active_from": "2026-03-25T15:39:20.978000000Z",
+                                "active_until": null,
+                                "created_by_actor": {
+                                    "type": "system",
+                                    "id": null
+                                },
+                                "interaction_type": "meeting",
+                                "interacted_at": "2025-07-30T09:00:00.000000000Z",
+                                "owner_actor": {
+                                    "type": "workspace-member",
+                                    "id": "7ecfc396-2fcc-4b1a-844d-358653471664"
+                                },
+                                "attribute_type": "interaction"
+                            }
+                        ],
+                        "next_calendar_interaction": [],
+                        "first_email_interaction": [
+                            {
+                                "active_from": "2026-03-25T15:39:20.978000000Z",
+                                "active_until": null,
+                                "created_by_actor": {
+                                    "type": "system",
+                                    "id": null
+                                },
+                                "interaction_type": "email",
+                                "interacted_at": "2025-07-24T11:44:48.000000000Z",
+                                "owner_actor": {
+                                    "type": "workspace-member",
+                                    "id": "7ecfc396-2fcc-4b1a-844d-358653471664"
+                                },
+                                "attribute_type": "interaction"
+                            }
+                        ],
+                        "last_email_interaction": [
+                            {
+                                "active_from": "2026-03-25T15:39:20.978000000Z",
+                                "active_until": null,
+                                "created_by_actor": {
+                                    "type": "system",
+                                    "id": null
+                                },
+                                "interaction_type": "email",
+                                "interacted_at": "2025-07-24T11:44:48.000000000Z",
+                                "owner_actor": {
+                                    "type": "workspace-member",
+                                    "id": "7ecfc396-2fcc-4b1a-844d-358653471664"
+                                },
+                                "attribute_type": "interaction"
+                            }
+                        ],
+                        "first_interaction": [
+                            {
+                                "active_from": "2026-03-25T15:39:20.978000000Z",
+                                "active_until": null,
+                                "created_by_actor": {
+                                    "type": "system",
+                                    "id": null
+                                },
+                                "interaction_type": "email",
+                                "interacted_at": "2025-07-24T11:44:48.000000000Z",
+                                "owner_actor": {
+                                    "type": "workspace-member",
+                                    "id": "7ecfc396-2fcc-4b1a-844d-358653471664"
+                                },
+                                "attribute_type": "interaction"
+                            }
+                        ],
+                        "last_interaction": [
+                            {
+                                "active_from": "2026-03-25T15:39:20.978000000Z",
+                                "active_until": null,
+                                "created_by_actor": {
+                                    "type": "system",
+                                    "id": null
+                                },
+                                "interaction_type": "meeting",
+                                "interacted_at": "2025-07-30T09:00:00.000000000Z",
+                                "owner_actor": {
+                                    "type": "workspace-member",
+                                    "id": "7ecfc396-2fcc-4b1a-844d-358653471664"
+                                },
+                                "attribute_type": "interaction"
+                            }
+                        ],
+                        "next_interaction": [],
+                        "strongest_connection_strength_legacy": [
+                            {
+                                "active_from": "2026-07-23T02:24:08.127462486Z",
+                                "active_until": null,
+                                "created_by_actor": {
+                                    "type": "system",
+                                    "id": null
+                                },
+                                "value": 1.0125452189013107,
+                                "attribute_type": "number"
+                            }
+                        ],
+                        "strongest_connection_strength": [
+                            {
+                                "active_from": "2026-03-25T15:39:20.978000000Z",
+                                "active_until": null,
+                                "created_by_actor": {
+                                    "type": "system",
+                                    "id": null
+                                },
+                                "option": {
+                                    "id": {
+                                        "workspace_id": "b28b2fff-8c34-4612-8927-6c38cc63d99d",
+                                        "object_id": "a0bac78b-7dba-478c-a259-6ed3e2af3dad",
+                                        "attribute_id": "c216db04-7b79-4e06-ae66-419497d4da8b",
+                                        "option_id": "c4123694-df8a-4b12-aa95-b60e95eceb42"
+                                    },
+                                    "title": "Very weak",
+                                    "is_archived": false
+                                },
+                                "attribute_type": "select"
+                            }
+                        ],
+                        "strongest_connection_user": [
+                            {
+                                "active_from": "2026-03-25T15:39:20.978000000Z",
+                                "active_until": null,
+                                "created_by_actor": {
+                                    "type": "system",
+                                    "id": null
+                                },
+                                "referenced_actor_type": "workspace-member",
+                                "referenced_actor_id": "7ecfc396-2fcc-4b1a-844d-358653471664",
+                                "attribute_type": "actor-reference"
+                            }
+                        ],
+                        "associated_deals": [
+                            {
+                                "active_from": "2026-04-01T20:31:40.668000000Z",
+                                "active_until": null,
+                                "created_by_actor": {
+                                    "type": "workspace-member",
+                                    "id": "7ecfc396-2fcc-4b1a-844d-358653471664"
+                                },
+                                "target_object": "deals",
+                                "target_record_id": "3a7909a5-0a9f-4811-8580-0fa6c6a93778",
+                                "attribute_type": "record-reference"
+                            },
+                            {
+                                "active_from": "2026-04-01T20:30:09.075000000Z",
+                                "active_until": null,
+                                "created_by_actor": {
+                                    "type": "workspace-member",
+                                    "id": "7ecfc396-2fcc-4b1a-844d-358653471664"
+                                },
+                                "target_object": "deals",
+                                "target_record_id": "caff6dfb-0f69-45aa-9fc7-bf216f35a99b",
+                                "attribute_type": "record-reference"
+                            }
+                        ],
+                        "associated_users": [],
+                        "created_at": [
+                            {
+                                "active_from": "2026-03-25T15:39:20.709000000Z",
+                                "active_until": null,
+                                "created_by_actor": {
+                                    "type": "system",
+                                    "id": null
+                                },
+                                "value": "2026-03-25T15:39:20.480000000Z",
+                                "attribute_type": "timestamp"
+                            }
+                        ],
+                        "created_by": [
+                            {
+                                "active_from": "2026-03-25T15:39:20.740000000Z",
+                                "active_until": null,
+                                "created_by_actor": {
+                                    "type": "system",
+                                    "id": null
+                                },
+                                "referenced_actor_type": "system",
+                                "referenced_actor_id": null,
+                                "attribute_type": "actor-reference"
+                            }
+                        ],
+                        "hiring_signal": [],
+                        "open_job_position": [],
+                        "lead_owner": [
+                            {
+                                "active_from": "2026-07-20T15:48:31.512917990Z",
+                                "active_until": null,
+                                "created_by_actor": {
+                                    "type": "workspace-member",
+                                    "id": "7ecfc396-2fcc-4b1a-844d-358653471664"
+                                },
+                                "status": {
+                                    "id": {
+                                        "workspace_id": "b28b2fff-8c34-4612-8927-6c38cc63d99d",
+                                        "object_id": "a0bac78b-7dba-478c-a259-6ed3e2af3dad",
+                                        "attribute_id": "49e97b54-3199-4aa4-be75-3affce072dc4",
+                                        "status_id": "f45798a5-fb16-4e47-99c1-dab1a2a97e51"
+                                    },
+                                    "title": "Toni",
+                                    "is_archived": false,
+                                    "target_time_in_status": null,
+                                    "celebration_enabled": false
+                                },
+                                "attribute_type": "status"
+                            }
+                        ],
+                        "send_email": [
+                            {
+                                "active_from": "2026-07-21T14:57:57.035020893Z",
+                                "active_until": null,
+                                "created_by_actor": {
+                                    "type": "workspace-member",
+                                    "id": "7ecfc396-2fcc-4b1a-844d-358653471664"
+                                },
+                                "option": {
+                                    "id": {
+                                        "workspace_id": "b28b2fff-8c34-4612-8927-6c38cc63d99d",
+                                        "object_id": "a0bac78b-7dba-478c-a259-6ed3e2af3dad",
+                                        "attribute_id": "9434d932-8653-4e22-afdc-e33c306a393c",
+                                        "option_id": "3e2698d9-e756-4447-a51f-a0bf864d04f7"
+                                    },
+                                    "title": "Yes",
+                                    "is_archived": false
+                                },
+                                "attribute_type": "select"
+                            }
+                        ],
+                        "job_opening_link": [],
+                        "date": [
+                            {
+                                "active_from": "2026-04-05T11:22:10.289000000Z",
+                                "active_until": null,
+                                "created_by_actor": {
+                                    "type": "workspace-member",
+                                    "id": "7ecfc396-2fcc-4b1a-844d-358653471664"
+                                },
+                                "value": "2026-04-02",
+                                "attribute_type": "date"
+                            }
+                        ],
+                        "normalized_job_post": [
+                            {
+                                "active_from": "2026-04-05T11:21:33.703000000Z",
+                                "active_until": null,
+                                "created_by_actor": {
+                                    "type": "workspace-member",
+                                    "id": "7ecfc396-2fcc-4b1a-844d-358653471664"
+                                },
+                                "value": "Anlagenmechaniker",
+                                "attribute_type": "text"
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    },
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "ebdaf8d31ca9b8fb26fed19120fc04ffd584c14960c07ef7b4c2cd41137d0417"
+    }
+}
