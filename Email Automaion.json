@@ -10,7 +10,7 @@
             "typeVersion": 2.1,
             "position": [
                 544,
-                368
+                272
             ],
             "id": "3edd98af-203e-4d27-b69c-eb6cc10f0953",
             "name": "Webhook",
@@ -44,7 +44,7 @@
             "typeVersion": 2.3,
             "position": [
                 992,
-                368
+                272
             ],
             "id": "820c0dc7-03cf-4cd0-9b5d-38e1262eb669",
             "name": "Send Email = True"
@@ -110,7 +110,7 @@
             "typeVersion": 3.4,
             "position": [
                 1568,
-                368
+                272
             ],
             "id": "86abe78a-f975-4daf-b450-f1321c1b300b",
             "name": "Toni oder Stefan"
@@ -121,7 +121,7 @@
                 "subject": "=Frage zur {{ $('Get Attio Record by ID').item.json.data.values.name[0].first_name }}",
                 "bodyContent": "=Guten Tag {{ $('Message a model').item.json.content[0].text }} {{ $('Get Attio Record by ID').item.json.data.values.name[0].first_name }} \n\nich hoffe, Ihnen geht es gut soweit. Mein Name ist Stoyan, Gründer von Joblora.\n\nIch wollte mal kurz nachfragen, wie die Besetzung der {{ $('Get Attio Record by ID').item.json.data.values.job_title[0].value }} Stelle in aktuell läuft?\nIn Ihrer Region dauert nämlich eine ähnliche Besetzung aktuell im Schnitt 72 Tage. Woher\nweiß ich das?\n\nWir haben im letzten Quartal 7 vergleichbare Positionen bei technischen Betrieben in Ihrer\nRegion in 7–34 Tagen besetzt, ohne Jobportale und 50% günstiger als klassische\nAgenturen.\n\nWir fokussieren uns dabei ausschließlich auf technische Stellen.\n\n(Servicetechniker:in,Elektriker:in, Anlagenmechaniker:in)\n\nIch habe tatsächlich auch bei uns geschaut und hätte einen Kandidaten, der zu der Stelle\npassen könnte, aus (City).\nGuten Tag {{ $('Message a model').item.json.content[0].text }} {{ $('Get Attio Record by ID').item.json.data.values.name[0].first_name }} \n\nich hoffe, Ihnen geht es gut soweit. Mein Name ist Stoyan, Gründer von Joblora.\n\nIch wollte mal kurz nachfragen, wie die Besetzung der {{ $('Get Attio Record by ID').item.json.data.values.job_title[0].value }} Stelle in aktuell läuft?\nIn Ihrer Region dauert nämlich eine ähnliche Besetzung aktuell im Schnitt 72 Tage. Woher\nweiß ich das?\n\nWir haben im letzten Quartal 7 vergleichbare Positionen bei technischen Betrieben in Ihrer\nRegion in 7–34 Tagen besetzt, ohne Jobportale und 50% günstiger als klassische\nAgenturen.\n\nWir fokussieren uns dabei ausschließlich auf technische Stellen.\n\n(Servicetechniker:in,Elektriker:in, Anlagenmechaniker:in)\n\nIch habe tatsächlich auch bei uns geschaut und hätte einen Kandidaten, der zu der Stelle\npassen könnte, aus (City).\n\nIst das generell ein Thema für Sie oder eher weniger?\n\nMehr Infos unter: www.joblora.de\nMehr Infos zum Datenschutz? Finden Sie hier: joblora.ai/datenschutzerklaerung/\n\nSie wünschen keine weitere Kontaktaufnahme? Antworten Sie bitte mit „STOP“. Wir werden\nIhre Kontaktdaten umgehend für zukünftige Kontaktaufnahmen löschen.\n\nMit freundlichen Grüßen,\n\nStoyan B. Ivanov  \nCEO & Founder, Joblora\n\nPhone: +49 431 547 842 99  \nEmail: stoyan@joblora.de  \nLocation: Schauenburger Str. 116, 24118 Kiel\nIst das generell ein Thema für Sie oder eher weniger?\n\nMehr Infos unter: www.joblora.de\nMehr Infos zum Datenschutz? Finden Sie hier:joblora.ai/datenschutzerklaerung/ \n\nSie wünschen keine weitere Kontaktaufnahme? Antworten Sie bitte mit „STOP“. Wir werden\nIhre Kontaktdaten umgehend für zukünftige Kontaktaufnahmen löschen.",
                 "additionalFields": {
-                    "from": "hello@joblora.de"
+                    "ccRecipients": "hello@joblora.de"
                 }
             },
             "type": "n8n-nodes-base.microsoftOutlook",
@@ -135,31 +135,8 @@
             "webhookId": "a090f9c6-b5b4-4755-880b-5b4ba33c6d60",
             "credentials": {
                 "microsoftOutlookOAuth2Api": {
-                    "id": "VoBscLsHaiPx75zJ",
-                    "name": "Microsoft Outlook account"
-                }
-            }
-        },
-        {
-            "parameters": {
-                "toRecipients": "={{ $('Get Attio Record by ID').item.json.data.values.email_addresses[0].email_address }}",
-                "subject": "=Guten Tag {{ $('Get Attio Record by ID').item.json.data.values.name[0].first_name }}",
-                "bodyContent": "=Guten Tag {{ $('Message a model').item.json.content[0].text }} {{ $('Get Attio Record by ID').item.json.data.values.name[0].first_name }} \n\nIhre Stelle als {{ $('Get Attio Record by ID').item.json.data.values.normalized_job_post[0].value }} ist seit {{ $('Get Attio Record by ID').item.json.data.values.date[0].value }} online.\n\nIn Ihrer Region dauert die Besetzung aktuell im Schnitt 92 Tage.\n\nWir haben im letzten Quartal 7 vergleichbare Positionen bei Kunden in Ihrer Region in 7–34 Tagen besetzt – ohne klassische Jobportale und günstiger als Social-Media-Kampagnen.  \n\nIst das für Sie aktuell ein Thema?\n\n- Stefan",
-                "additionalFields": {}
-            },
-            "type": "n8n-nodes-base.microsoftOutlook",
-            "typeVersion": 2,
-            "position": [
-                1792,
-                464
-            ],
-            "id": "99718db9-5aa3-4d93-8d80-be459ed818fe",
-            "name": "Stefan Inbox",
-            "webhookId": "a090f9c6-b5b4-4755-880b-5b4ba33c6d60",
-            "credentials": {
-                "microsoftOutlookOAuth2Api": {
-                    "id": "VoBscLsHaiPx75zJ",
-                    "name": "Microsoft Outlook account"
+                    "id": "y9p0fVmdUZKvkeK2",
+                    "name": "Microsoft Outlook account - Stoyan Ivanov"
                 }
             }
         },
@@ -185,7 +162,7 @@
             "typeVersion": 4.1,
             "position": [
                 768,
-                368
+                272
             ],
             "retryOnFail": true,
             "maxTries": 5,
@@ -219,7 +196,7 @@
             "typeVersion": 1,
             "position": [
                 1216,
-                368
+                272
             ],
             "id": "186205ee-788f-421d-ad2d-4a989cd01a4c",
             "name": "Message a model",
@@ -263,13 +240,7 @@
                         "index": 0
                     }
                 ],
-                [
-                    {
-                        "node": "Stefan Inbox",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
+                []
             ]
         },
         "Get Attio Record by ID": {
@@ -377,7 +348,7 @@
                                     "id": null
                                 },
                                 "original_email_address": "t.iva@hotmail.com",
-                                "email_address": "dawitsema@outlook.com",
+                                "email_address": "dawitsema520@gmail.com",
                                 "email_domain": "hotmail.com",
                                 "email_root_domain": "hotmail.com",
                                 "email_local_specifier": "t.iva",
