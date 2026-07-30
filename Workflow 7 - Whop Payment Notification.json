@@ -1,0 +1,313 @@
+{
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "39479274929-whop-payment-success",
+                "options": {}
+            },
+            "id": "ec99a85c-d48e-4856-92db-1c5d661fa42e",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                -128,
+                1696
+            ],
+            "webhookId": "whop-payment-success"
+        },
+        {
+            "parameters": {
+                "rules": {
+                    "values": [
+                        {
+                            "conditions": {
+                                "options": {
+                                    "caseSensitive": true,
+                                    "leftValue": "",
+                                    "typeValidation": "strict",
+                                    "version": 3
+                                },
+                                "conditions": [
+                                    {
+                                        "id": "cond-payment-succeeded",
+                                        "leftValue": "={{ $json.body.type }}",
+                                        "rightValue": "payment.succeeded",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals"
+                                        }
+                                    }
+                                ],
+                                "combinator": "and"
+                            },
+                            "renameOutput": true,
+                            "outputKey": "payment_succeeded"
+                        },
+                        {
+                            "conditions": {
+                                "options": {
+                                    "caseSensitive": true,
+                                    "leftValue": "",
+                                    "typeValidation": "strict",
+                                    "version": 3
+                                },
+                                "conditions": [
+                                    {
+                                        "id": "cond-payment-failed",
+                                        "leftValue": "={{ $json.body.type }}",
+                                        "rightValue": "payment.failed",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals"
+                                        }
+                                    }
+                                ],
+                                "combinator": "and"
+                            },
+                            "renameOutput": true,
+                            "outputKey": "payment_failed"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "8077e034-4d37-483c-bc16-e20e04a8502a",
+            "name": "Route by Event Type",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 3.4,
+            "position": [
+                96,
+                1696
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://slack.com/api/chat.postMessage",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json; charset=utf-8"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify((() => {\n  const d = $json.body.data;\n  const customerName = d.user.name || d.billing_address.name || d.user.username || 'Unknown';\n  const currency = (d.currency || 'gbp').toUpperCase();\n  const symbol = currency === 'GBP' ? '£' : '$';\n  const total = Number(d.total || 0).toFixed(2);\n  const netAfterFees = Number(d.amount_after_fees || 0).toFixed(2);\n  const cardBrand = ((d.payment_method || {}).card || {}).brand || d.card_brand || 'N/A';\n  const cardLast4 = ((d.payment_method || {}).card || {}).last4 || d.card_last4 || 'N/A';\n  const paidAt = d.paid_at ? new Date(d.paid_at).toLocaleString('en-GB', { timeZone: 'Europe/London' }) : 'N/A';\n  return {\n    channel: 'C0A69CWFJN9',\n    text: '💰 Payment received from ' + customerName,\n    blocks: [\n      { type: 'header', text: { type: 'plain_text', text: '💰 Payment Received — Whop', emoji: true } },\n      { type: 'section', text: { type: 'mrkdwn', text: 'You just received a payment of *' + symbol + total + ' ' + currency + '* from *' + customerName + '*.' } },\n      { type: 'divider' },\n      {\n        type: 'section',\n        fields: [\n          { type: 'mrkdwn', text: '*Customer*\\n' + customerName },\n          { type: 'mrkdwn', text: '*Amount*\\n' + symbol + total + ' ' + currency },\n          { type: 'mrkdwn', text: '*Email*\\n' + (d.user.email || 'N/A') },\n          { type: 'mrkdwn', text: '*Username*\\n' + (d.user.username || 'N/A') },\n          { type: 'mrkdwn', text: '*Product*\\n' + (d.product.title || 'N/A') },\n          { type: 'mrkdwn', text: '*Payment Method*\\n' + cardBrand.charAt(0).toUpperCase() + cardBrand.slice(1) + ' •••• ' + cardLast4 },\n          { type: 'mrkdwn', text: '*Billing Reason*\\n' + (d.billing_reason || 'N/A') },\n          { type: 'mrkdwn', text: '*Net After Fees*\\n' + symbol + netAfterFees + ' ' + currency },\n          { type: 'mrkdwn', text: '*Paid At*\\n' + paidAt },\n          { type: 'mrkdwn', text: '*Payment ID*\\n' + (d.id || 'N/A') }\n        ]\n      },\n      { type: 'divider' },\n      { type: 'context', elements: [{ type: 'mrkdwn', text: 'Whop · Property Hussle · ' + new Date().toISOString() }] }\n    ]\n  };\n})()) }}",
+                "options": {}
+            },
+            "id": "59e730db-2bb2-43f3-8e97-391cb7ddc924",
+            "name": "Slack – Payment Succeeded",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                320,
+                1600
+            ],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "rYcEXymjnDA440Cu",
+                    "name": "slack - property hussle bot"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://slack.com/api/chat.postMessage",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json; charset=utf-8"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify((() => {\n  const d = $json.body.data;\n  const customerName = d.user.name || d.billing_address.name || d.user.username || 'Unknown';\n  const currency = (d.currency || 'gbp').toUpperCase();\n  const symbol = currency === 'GBP' ? '£' : '$';\n  const total = Number(d.total || 0).toFixed(2);\n  return {\n    channel: 'C0A6RPBQCF3',\n    text: '❌ Payment failed from ' + customerName,\n    blocks: [\n      { type: 'header', text: { type: 'plain_text', text: '❌ Payment Failed — Whop', emoji: true } },\n      { type: 'section', text: { type: 'mrkdwn', text: 'A payment of *' + symbol + total + ' ' + currency + '* from *' + customerName + '* has *failed*.' } },\n      { type: 'divider' },\n      {\n        type: 'section',\n        fields: [\n          { type: 'mrkdwn', text: '*Customer*\\n' + customerName },\n          { type: 'mrkdwn', text: '*Amount Attempted*\\n' + symbol + total + ' ' + currency },\n          { type: 'mrkdwn', text: '*Email*\\n' + (d.user.email || 'N/A') },\n          { type: 'mrkdwn', text: '*Username*\\n' + (d.user.username || 'N/A') },\n          { type: 'mrkdwn', text: '*Product*\\n' + ((d.product || {}).title || 'N/A') },\n          { type: 'mrkdwn', text: '*Failure Reason*\\n' + (d.failure_message || 'Unknown') },\n          { type: 'mrkdwn', text: '*Attempts Failed*\\n' + (d.payments_failed || 1) },\n          { type: 'mrkdwn', text: '*Billing Reason*\\n' + (d.billing_reason || 'N/A') }\n        ]\n      },\n      { type: 'divider' },\n      { type: 'context', elements: [{ type: 'mrkdwn', text: 'Whop · Property Hussle · ' + new Date().toISOString() }] }\n    ]\n  };\n})()) }}",
+                "options": {}
+            },
+            "id": "2d6daa58-b90c-4741-a0f6-967fc517871e",
+            "name": "Slack – Payment Failed",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                320,
+                1792
+            ],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "rYcEXymjnDA440Cu",
+                    "name": "slack - property hussle bot"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Route by Event Type",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Route by Event Type": {
+            "main": [
+                [
+                    {
+                        "node": "Slack – Payment Succeeded",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Slack – Payment Failed",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "pinData": {
+        "Webhook": [
+            {
+                "headers": {
+                    "host": "propertyhussle.app.n8n.cloud",
+                    "user-agent": "Typhoeus - https://github.com/typhoeus/typhoeus",
+                    "content-length": "1737",
+                    "accept": "*/*",
+                    "accept-encoding": "gzip, br",
+                    "cdn-loop": "cloudflare; loops=1; subreqs=1",
+                    "cf-connecting-ip": "54.144.66.110",
+                    "cf-ew-via": "15",
+                    "cf-ipcountry": "US",
+                    "cf-ray": "a175edaeffc0d694-IAD",
+                    "cf-visitor": "{\"scheme\":\"https\"}",
+                    "cf-worker": "n8n.cloud",
+                    "content-type": "application/json",
+                    "newrelic": "eyJ2IjpbMCwxXSwiZCI6eyJ0eSI6IkFwcCIsImFjIjoiNDIwMDUxNyIsImFwIjoiMTAzNzI2NTg1MCIsInR4IjoiNGM3MDMxNWI2NTJkNjJjMCIsInRyIjoiNzQ1NzI4NmI5NjgyYWEwNmUxYzgwM2ZkNmM1MjFlN2YiLCJzYSI6ZmFsc2UsInByIjowLjA4MTczOSwidGkiOjE3ODM0MTc2NTM0NjQsImlkIjoiYjM3Y2UxMTkxMWU3ODBhNCJ9fQ==",
+                    "traceparent": "00-7457286b9682aa06e1c803fd6c521e7f-b37ce11911e780a4-00",
+                    "tracestate": "4200517@nr=0-0-4200517-1037265850-b37ce11911e780a4-4c70315b652d62c0-0-0.081739-1783417653464",
+                    "webhook-id": "msg_LILzugEIVJ2j1wRtGD9PErKm",
+                    "webhook-signature": "v1,h+Q88zNQVkCB4wjJBNQn+NeNDNzyVvzztYCXyXuuwhs=",
+                    "webhook-timestamp": "1783417653",
+                    "x-forwarded-for": "54.144.66.110, 162.158.79.93",
+                    "x-forwarded-host": "propertyhussle.app.n8n.cloud",
+                    "x-forwarded-port": "443",
+                    "x-forwarded-proto": "https",
+                    "x-forwarded-server": "traefik-prod-users-gwc-33-6548f7bf9d-4bqc7",
+                    "x-is-trusted": "yes",
+                    "x-real-ip": "54.144.66.110"
+                },
+                "params": {},
+                "query": {},
+                "body": {
+                    "id": "msg_LILzugEIVJ2j1wRtGD9PErKm",
+                    "api_version": "v1",
+                    "timestamp": "2026-07-07T09:47:33.456Z",
+                    "data": {
+                        "id": "pay_in7Bq14rDMqTSC",
+                        "status": "paid",
+                        "substatus": "succeeded",
+                        "refundable": false,
+                        "retryable": false,
+                        "voidable": false,
+                        "created_at": "2026-07-07T09:47:33.164Z",
+                        "updated_at": "2026-07-07T09:47:33.319Z",
+                        "paid_at": "2026-07-07T09:47:33.163Z",
+                        "last_payment_attempt": null,
+                        "next_payment_attempt": null,
+                        "dispute_alerted_at": null,
+                        "refunded_at": null,
+                        "plan": {
+                            "id": "plan_ySpwTM5BRxvBT",
+                            "internal_notes": null,
+                            "metadata": {}
+                        },
+                        "product": {
+                            "id": "prod_NRS9glUOwrfYa",
+                            "title": "Property Hussle",
+                            "route": "property-hussle-af",
+                            "metadata": {}
+                        },
+                        "user": {
+                            "id": "user_iyY2sSxUaP0Ap",
+                            "name": null,
+                            "username": "validgyro38",
+                            "email": "justin@propertyhussle.com"
+                        },
+                        "membership": {
+                            "id": "mem_Ii5OFKUqRY8ibN",
+                            "status": "completed",
+                            "phone_number": null
+                        },
+                        "member": {
+                            "id": "mber_gALniMnfoYnOJ",
+                            "phone": null
+                        },
+                        "payment_method": null,
+                        "company": {
+                            "id": "biz_EDmmsOv1BwsFNf",
+                            "title": "Property Hussle",
+                            "route": "property-hussle"
+                        },
+                        "promo_code": null,
+                        "currency": "usd",
+                        "settlement_currency": "usd",
+                        "total": 0,
+                        "subtotal": 0,
+                        "usd_total": 0,
+                        "refunded_amount": 0,
+                        "auto_refunded": false,
+                        "amount_after_fees": 0,
+                        "application_fee": null,
+                        "card_brand": null,
+                        "card_last4": null,
+                        "billing_address": null,
+                        "shipping_address": null,
+                        "payment_method_type": null,
+                        "billing_reason": "one_time",
+                        "payments_failed": 0,
+                        "tax_amount": null,
+                        "tax_behavior": null,
+                        "failure_message": null,
+                        "metadata": {},
+                        "checkout_configuration_id": null,
+                        "settlement_amount": 0,
+                        "settlement_exchange_rate": null,
+                        "tax_refunded_amount": 0,
+                        "financing_installments_count": null,
+                        "financing_transactions": [],
+                        "disputes": [],
+                        "resolutions": [],
+                        "risk_score": null,
+                        "risk_signals": null,
+                        "three_ds_verified": false
+                    },
+                    "type": "payment.succeeded",
+                    "company_id": "biz_EDmmsOv1BwsFNf"
+                },
+                "webhookUrl": "https://propertyhussle.app.n8n.cloud/webhook/39479274929-whop-payment-success",
+                "executionMode": "production"
+            }
+        ]
+    },
+    "meta": {
+        "instanceId": "8b0968e82080ca3a539101af649065d63cbf690891f13b85ab9a36398e21d5e8"
+    }
+}

@@ -1,0 +1,130 @@
+﻿{
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "stripe-payment-notification",
+                "options": {}
+            },
+            "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [-128, 1696],
+            "webhookId": "stripe-payment-notification"
+        },
+        {
+            "parameters": {
+                "rules": {
+                    "values": [
+                        {
+                            "conditions": {
+                                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+                                "conditions": [{ "id": "cond-pi-succeeded", "leftValue": "={{ $json.body.type }}", "rightValue": "payment_intent.succeeded", "operator": { "type": "string", "operation": "equals" } }],
+                                "combinator": "and"
+                            },
+                            "renameOutput": true,
+                            "outputKey": "payment_succeeded"
+                        },
+                        {
+                            "conditions": {
+                                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+                                "conditions": [{ "id": "cond-pi-failed", "leftValue": "={{ $json.body.type }}", "rightValue": "payment_intent.payment_failed", "operator": { "type": "string", "operation": "equals" } }],
+                                "combinator": "and"
+                            },
+                            "renameOutput": true,
+                            "outputKey": "payment_failed"
+                        },
+                        {
+                            "conditions": {
+                                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+                                "conditions": [{ "id": "cond-charge-refunded", "leftValue": "={{ $json.body.type }}", "rightValue": "charge.refunded", "operator": { "type": "string", "operation": "equals" } }],
+                                "combinator": "and"
+                            },
+                            "renameOutput": true,
+                            "outputKey": "charge_refunded"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+            "name": "Route by Event Type",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 3.4,
+            "position": [96, 1696]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://slack.com/api/chat.postMessage",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendHeaders": true,
+                "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json; charset=utf-8" }] },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify((() => {\n  const obj = $json.body.data.object;\n  const amountTotal = Number(obj.amount || obj.amount_received || 0) / 100;\n  const currency = (obj.currency || 'gbp').toUpperCase();\n  const symbol = currency === 'GBP' ? '\u00a3' : (currency === 'EUR' ? '\u20ac' : '$');\n  const customerName = (obj.shipping && obj.shipping.name) || obj.customer_email || obj.receipt_email || 'Unknown';\n  const customerEmail = obj.receipt_email || obj.customer_email || 'N/A';\n  const paymentMethod = obj.payment_method_types ? obj.payment_method_types[0] : 'N/A';\n  const description = obj.description || obj.statement_descriptor || 'N/A';\n  const createdAt = obj.created ? new Date(obj.created * 1000).toLocaleString('en-GB', { timeZone: 'Europe/London' }) : 'N/A';\n  const paymentId = obj.id || 'N/A';\n  const stripeLink = obj.id ? 'https://dashboard.stripe.com/payments/' + obj.id : null;\n  return {\n    channel: 'C0A69CWFJN9',\n    text: '\ud83d\udcb0 Stripe payment received from ' + customerName,\n    blocks: [\n      { type: 'header', text: { type: 'plain_text', text: '\ud83d\udcb0 Payment Received \u2014 Stripe', emoji: true } },\n      { type: 'section', text: { type: 'mrkdwn', text: 'You just received a payment of *' + symbol + amountTotal.toFixed(2) + ' ' + currency + '* from *' + customerName + '*.' } },\n      { type: 'divider' },\n      { type: 'section', fields: [\n        { type: 'mrkdwn', text: '*Customer*\\\\n' + customerName },\n        { type: 'mrkdwn', text: '*Amount*\\\\n' + symbol + amountTotal.toFixed(2) + ' ' + currency },\n        { type: 'mrkdwn', text: '*Email*\\\\n' + customerEmail },\n        { type: 'mrkdwn', text: '*Payment Method*\\\\n' + paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1) },\n        { type: 'mrkdwn', text: '*Description*\\\\n' + description },\n        { type: 'mrkdwn', text: '*Status*\\\\n\u2705 Succeeded' },\n        { type: 'mrkdwn', text: '*Created At*\\\\n' + createdAt },\n        { type: 'mrkdwn', text: '*Payment ID*\\\\n' + paymentId }\n      ]},\n      { type: 'divider' },\n      ...(stripeLink ? [{ type: 'section', text: { type: 'mrkdwn', text: '<' + stripeLink + '|View in Stripe Dashboard>' } }] : []),\n      { type: 'context', elements: [{ type: 'mrkdwn', text: 'Stripe \u00b7 Property Hussle \u00b7 ' + new Date().toISOString() }] }\n    ]\n  };\n})()) }}",
+                "options": {}
+            },
+            "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+            "name": "Slack \u2013 Payment Succeeded",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [320, 1520],
+            "credentials": { "httpHeaderAuth": { "id": "rYcEXymjnDA440Cu", "name": "slack - property hussle bot" } }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://slack.com/api/chat.postMessage",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendHeaders": true,
+                "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json; charset=utf-8" }] },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify((() => {\n  const obj = $json.body.data.object;\n  const amountTotal = Number(obj.amount || 0) / 100;\n  const currency = (obj.currency || 'gbp').toUpperCase();\n  const symbol = currency === 'GBP' ? '\u00a3' : (currency === 'EUR' ? '\u20ac' : '$');\n  const customerName = (obj.shipping && obj.shipping.name) || obj.customer_email || obj.receipt_email || 'Unknown';\n  const customerEmail = obj.receipt_email || obj.customer_email || 'N/A';\n  const paymentMethod = obj.payment_method_types ? obj.payment_method_types[0] : 'N/A';\n  const failureCode = (obj.last_payment_error && obj.last_payment_error.code) || 'N/A';\n  const failureMessage = (obj.last_payment_error && obj.last_payment_error.message) || 'Unknown reason';\n  const createdAt = obj.created ? new Date(obj.created * 1000).toLocaleString('en-GB', { timeZone: 'Europe/London' }) : 'N/A';\n  const paymentId = obj.id || 'N/A';\n  const stripeLink = obj.id ? 'https://dashboard.stripe.com/payments/' + obj.id : null;\n  return {\n    channel: 'C0A6RPBQCF3',\n    text: '\u274c Stripe payment failed from ' + customerName,\n    blocks: [\n      { type: 'header', text: { type: 'plain_text', text: '\u274c Payment Failed \u2014 Stripe', emoji: true } },\n      { type: 'section', text: { type: 'mrkdwn', text: 'A payment of *' + symbol + amountTotal.toFixed(2) + ' ' + currency + '* from *' + customerName + '* has *failed*.' } },\n      { type: 'divider' },\n      { type: 'section', fields: [\n        { type: 'mrkdwn', text: '*Customer*\\\\n' + customerName },\n        { type: 'mrkdwn', text: '*Amount Attempted*\\\\n' + symbol + amountTotal.toFixed(2) + ' ' + currency },\n        { type: 'mrkdwn', text: '*Email*\\\\n' + customerEmail },\n        { type: 'mrkdwn', text: '*Payment Method*\\\\n' + paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1) },\n        { type: 'mrkdwn', text: '*Failure Code*\\\\n' + failureCode },\n        { type: 'mrkdwn', text: '*Failure Reason*\\\\n' + failureMessage },\n        { type: 'mrkdwn', text: '*Created At*\\\\n' + createdAt },\n        { type: 'mrkdwn', text: '*Payment ID*\\\\n' + paymentId }\n      ]},\n      { type: 'divider' },\n      ...(stripeLink ? [{ type: 'section', text: { type: 'mrkdwn', text: '<' + stripeLink + '|View in Stripe Dashboard>' } }] : []),\n      { type: 'context', elements: [{ type: 'mrkdwn', text: 'Stripe \u00b7 Property Hussle \u00b7 ' + new Date().toISOString() }] }\n    ]\n  };\n})()) }}",
+                "options": {}
+            },
+            "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
+            "name": "Slack \u2013 Payment Failed",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [320, 1696],
+            "credentials": { "httpHeaderAuth": { "id": "rYcEXymjnDA440Cu", "name": "slack - property hussle bot" } }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://slack.com/api/chat.postMessage",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendHeaders": true,
+                "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json; charset=utf-8" }] },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify((() => {\n  const obj = $json.body.data.object;\n  const refundedAmount = Number(obj.amount_refunded || 0) / 100;\n  const currency = (obj.currency || 'gbp').toUpperCase();\n  const symbol = currency === 'GBP' ? '\u00a3' : (currency === 'EUR' ? '\u20ac' : '$');\n  const customerName = (obj.billing_details && obj.billing_details.name) || obj.receipt_email || 'Unknown';\n  const customerEmail = obj.receipt_email || (obj.billing_details && obj.billing_details.email) || 'N/A';\n  const chargeId = obj.id || 'N/A';\n  const paymentIntent = obj.payment_intent || 'N/A';\n  const refundedAt = obj.created ? new Date(obj.created * 1000).toLocaleString('en-GB', { timeZone: 'Europe/London' }) : 'N/A';\n  const stripeLink = obj.payment_intent ? 'https://dashboard.stripe.com/payments/' + obj.payment_intent : null;\n  return {\n    channel: 'C0A6RPBQCF3',\n    text: '\u21a9\ufe0f Stripe refund issued to ' + customerName,\n    blocks: [\n      { type: 'header', text: { type: 'plain_text', text: '\u21a9\ufe0f Refund Issued \u2014 Stripe', emoji: true } },\n      { type: 'section', text: { type: 'mrkdwn', text: 'A refund of *' + symbol + refundedAmount.toFixed(2) + ' ' + currency + '* has been issued to *' + customerName + '*.' } },\n      { type: 'divider' },\n      { type: 'section', fields: [\n        { type: 'mrkdwn', text: '*Customer*\\\\n' + customerName },\n        { type: 'mrkdwn', text: '*Refunded Amount*\\\\n' + symbol + refundedAmount.toFixed(2) + ' ' + currency },\n        { type: 'mrkdwn', text: '*Email*\\\\n' + customerEmail },\n        { type: 'mrkdwn', text: '*Charge ID*\\\\n' + chargeId },\n        { type: 'mrkdwn', text: '*Payment Intent*\\\\n' + paymentIntent },\n        { type: 'mrkdwn', text: '*Refunded At*\\\\n' + refundedAt }\n      ]},\n      { type: 'divider' },\n      ...(stripeLink ? [{ type: 'section', text: { type: 'mrkdwn', text: '<' + stripeLink + '|View in Stripe Dashboard>' } }] : []),\n      { type: 'context', elements: [{ type: 'mrkdwn', text: 'Stripe \u00b7 Property Hussle \u00b7 ' + new Date().toISOString() }] }\n    ]\n  };\n})()) }}",
+                "options": {}
+            },
+            "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
+            "name": "Slack \u2013 Charge Refunded",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [320, 1872],
+            "credentials": { "httpHeaderAuth": { "id": "rYcEXymjnDA440Cu", "name": "slack - property hussle bot" } }
+        }
+    ],
+    "connections": {
+        "Webhook": { "main": [[{ "node": "Route by Event Type", "type": "main", "index": 0 }]] },
+        "Route by Event Type": {
+            "main": [
+                [{ "node": "Slack \u2013 Payment Succeeded", "type": "main", "index": 0 }],
+                [{ "node": "Slack \u2013 Payment Failed", "type": "main", "index": 0 }],
+                [{ "node": "Slack \u2013 Charge Refunded", "type": "main", "index": 0 }]
+            ]
+        }
+    },
+    "pinData": {},
+    "meta": { "instanceId": "8b0968e82080ca3a539101af649065d63cbf690891f13b85ab9a36398e21d5e8" }
+}
