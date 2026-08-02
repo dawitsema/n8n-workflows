@@ -1,0 +1,98 @@
+n8n Automation Expert | AI Agents | CRM & API Integrations | Make.com | Zapier
+
+$10.00/hr
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+I build, fix, and scale 𝐧𝟖𝐧 𝐚𝐮𝐭𝐨𝐦𝐚𝐭𝐢𝐨𝐧𝐬, 𝐀𝐈 𝐀𝐠𝐞𝐧𝐭𝐬, and 𝐂𝐑𝐌 𝐰𝐨𝐫𝐤𝐟𝐥𝐨𝐰𝐬 that eliminate manual work and connect every tool in your stack — whether you're starting from scratch or have a broken system that needs rescuing.
+
+I specialize in turning complex business processes into reliable, production-grade automations using n8n (cloud & self-hosted), Make.com, and Zapier — integrated with AI (OpenAI GPT-4, Claude, Gemini), CRM systems, messaging platforms, and custom APIs.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚡ WHAT I BUILD & DELIVER
+
+🤖 𝐀𝐈 𝐀𝐠𝐞𝐧𝐭𝐬 & 𝐀𝐈-𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐖𝐨𝐫𝐤𝐟𝐥𝐨𝐰𝐬
+AI agent development using OpenAI GPT-4, Claude API, and Gemini for classification, extraction, summarization, and response generation. Chatbot development, Voice AI, and LLM-driven business process automation with structured JSON output.
+
+📊 𝐂𝐑𝐌 𝐀𝐮𝐭𝐨𝐦𝐚𝐭𝐢𝐨𝐧 & 𝐋𝐞𝐚𝐝 𝐌𝐚𝐧𝐚𝐠𝐞𝐦𝐞𝐧𝐭
+Full CRM integration and automation: HubSpot, GoHighLevel (GHL), Salesforce, Zoho CRM, Notion, Airtable. Lead capture, CRM sync, dedup logic, follow-up sequences, and pipeline automation. Automated lead generation workflows connecting webhooks → AI → CRM.
+
+📨 𝐌𝐞𝐬𝐬𝐚𝐠𝐢𝐧𝐠 & 𝐂𝐨𝐦𝐦𝐮𝐧𝐢𝐜𝐚𝐭𝐢𝐨𝐧 𝐀𝐮𝐭𝐨𝐦𝐚𝐭𝐢𝐨𝐧
+Twilio SMS automation, WhatsApp Business automation, Gmail API (threaded replies, auto-send, triggers), Slack, and OpenPhone API. AI-powered message rewriting, smart routing, and approval-gated messaging flows.
+
+🔗 𝐀𝐏𝐈 𝐈𝐧𝐭𝐞𝐠𝐫𝐚𝐭𝐢𝐨𝐧𝐬 & 𝐖𝐞𝐛𝐡𝐨𝐨𝐤𝐬
+REST API integrations, webhook receivers, OAuth2/Bearer/API key authentication, payload parsing, rate limiting, and idempotency. Shopify webhooks (order-paid, fulfillment), Google Sheets API, Gmail API, Notion API, and more.
+
+🕷️ 𝐃𝐚𝐭𝐚 𝐒𝐜𝐫𝐚𝐩𝐢𝐧𝐠 & 𝐋𝐞𝐚𝐝 𝐄𝐧𝐫𝐢𝐜𝐡𝐦𝐞𝐧𝐭
+Web scraping and data extraction using Scrapy, Beautiful Soup, Selenium, Playwright, Puppeteer, Cheerio, Apify, PhantomBuster, and Octoparse. Google Maps scraping, Instagram API data collection, contact information verification, and CRM data enrichment pipelines.
+
+🧹 𝐃𝐚𝐭𝐚 𝐂𝐥𝐞𝐚𝐧𝐢𝐧𝐠 & 𝐃𝐚𝐭𝐚𝐛𝐚𝐬𝐞 𝐌𝐚𝐧𝐚𝐠𝐞𝐦𝐞𝐧𝐭
+Data cleaning, deduplication, normalization, and enrichment in Google Sheets, Airtable, Supabase, PostgreSQL, and MongoDB. CRM migration, database design, and record matching workflows.
+
+📄 𝐃𝐨𝐜𝐮𝐦𝐞𝐧𝐭 𝐏𝐫𝐨𝐜𝐞𝐬𝐬𝐢𝐧𝐠 & 𝐎𝐂𝐑
+OCR automation (Google Cloud Vision, Document AI), screenshot-to-spreadsheet pipelines, Google Apps Script, and Apps Script API for document extraction and processing workflows.
+
+🔧 𝐅𝐢𝐱 & 𝐃𝐞𝐛𝐮𝐠
+Diagnose and repair broken n8n automations, failing API connections, data sync issues, and unstable workflows — fast, without full rebuilds.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚡ PROVEN RESULTS
+
+• 𝐀𝐈 𝐋𝐞𝐚𝐝 𝐏𝐢𝐩𝐞𝐥𝐢𝐧𝐞: 500+ daily leads via n8n webhooks, Python enrichment, HubSpot CRM sync, and OpenAI GPT-4 personalization — fully automated.
+• 𝐂𝐑𝐌 𝐀𝐮𝐭𝐨𝐦𝐚𝐭𝐢𝐨𝐧: Built a complete lead capture → Twilio SMS follow-up → CRM sync workflow with branching logic and error handling.
+• 𝐄-𝐜𝐨𝐦𝐦𝐞𝐫𝐜𝐞 𝐒𝐲𝐧𝐜: Automated Shopify order tracking, WooCommerce competitor price checks, and inventory updates — saving 6+ hrs/week.
+• 𝐖𝐡𝐚𝐭𝐬𝐀𝐩𝐩 𝐀𝐈 𝐌𝐞𝐬𝐬𝐚𝐠𝐢𝐧𝐠: AI-powered WhatsApp automation that routes, rewrites, and routes client messages using Claude API and n8n.
+• 𝐃𝐨𝐜𝐮𝐦𝐞𝐧𝐭 𝐏𝐫𝐨𝐜𝐞𝐬𝐬𝐢𝐧𝐠: 200+ docs/week auto-tagged and stored with n8n, Python, OCR, and Supabase.
+• 𝐍𝐞𝐰𝐬 𝐁𝐨𝐭: Fully automated Telegram news curation and posting using n8n, Gemini, and webhooks.
+• 𝐃𝐚𝐭𝐚 𝐄𝐧𝐫𝐢𝐜𝐡𝐦𝐞𝐧𝐭: Built automated lead scraping + CRM enrichment pipelines using Apify, Beautiful Soup, and Google Maps data sources.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚡ FULL TECHNICAL STACK
+
+𝐀𝐮𝐭𝐨𝐦𝐚𝐭𝐢𝐨𝐧 𝐏𝐥𝐚𝐭𝐟𝐨𝐫𝐦𝐬
+n8n (cloud & self-hosted), Make.com, Zapier — workflow design, error handling, branching logic, custom nodes, CLI
+
+𝐀𝐈 & 𝐌𝐚𝐜𝐡𝐢𝐧𝐞 𝐋𝐞𝐚𝐫𝐧𝐢𝐧𝐠
+OpenAI GPT-4, Claude (Anthropic), Gemini | AI Agent Development, AI Chatbot, Chatbot Development, Voice AI, Machine Learning integrations
+
+𝐂𝐑𝐌 & 𝐁𝐮𝐬𝐢𝐧𝐞𝐬𝐬 𝐓𝐨𝐨𝐥𝐬
+HubSpot, GoHighLevel (GHL), Salesforce CRM, Zoho CRM, Notion, Airtable, Clay
+
+𝐌𝐞𝐬𝐬𝐚𝐠𝐢𝐧𝐠 & 𝐂𝐨𝐦𝐦𝐮𝐧𝐢𝐜𝐚𝐭𝐢𝐨𝐧
+Twilio API (SMS), WhatsApp Business API, Gmail API, OpenPhone API, Slack, Telegram
+
+𝐄-𝐂𝐨𝐦𝐦𝐞𝐫𝐜𝐞 & 𝐏𝐚𝐲𝐦𝐞𝐧𝐭𝐬
+Shopify (webhooks, order/fulfillment events), WooCommerce, Stripe
+
+𝐃𝐚𝐭𝐚 & 𝐒𝐭𝐨𝐫𝐚𝐠𝐞
+Google Sheets, Airtable, Supabase, PostgreSQL, MongoDB | Google Apps Script, Apps Script API, Google Spreadsheets API
+
+𝐒𝐜𝐫𝐚𝐩𝐢𝐧𝐠 & 𝐄𝐱𝐭𝐫𝐚𝐜𝐭𝐢𝐨𝐧
+Scrapy, Beautiful Soup, Selenium, Playwright, Puppeteer, Cheerio, Apify, PhantomBuster, Octoparse, StormCrawler
+
+𝐂𝐨𝐝𝐢𝐧𝐠
+JavaScript (Node.js), Python, PHP, HTML5, Google Apps Script
+
+𝐀𝐏𝐈 & 𝐖𝐞𝐛𝐡𝐨𝐨𝐤𝐬
+REST APIs, OAuth2, Bearer tokens, API keys | Webhook receivers, signature verification, idempotency, rate limiting
+
+𝐎𝐂𝐑 & 𝐃𝐨𝐜𝐮𝐦𝐞𝐧𝐭 𝐀𝐈
+Google Cloud Vision, Google Document AI, OCR pipelines, screenshot-to-data extraction
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚡ HOW I WORK
+
+𝟏. Understand your process and map the automation architecture.
+𝟐. Share a clear plan (tool choice, workflow design, edge cases).
+𝟑. Build, test, and document every workflow in n8n / Make.com / Zapier.
+𝟒. Hand off with clean documentation and support for scaling.
+
+I communicate clearly, deliver on time, and write documentation so you can maintain the system yourself — or I can be your long-term automation partner.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 Need a broken automation fixed, a new AI agent built, or an end-to-end CRM workflow automated? Message me — I'll give you a fast, actionable plan.

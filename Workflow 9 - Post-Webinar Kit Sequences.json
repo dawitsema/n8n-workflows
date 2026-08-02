@@ -1,0 +1,370 @@
+{
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "zoom-webinar-ended",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "f1a00000-0001-4000-8000-000000000001",
+            "name": "Webhook: Zoom Webinar Ended",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [0, 300],
+            "webhookId": "zoom-webinar-ended"
+        },
+        {
+            "parameters": {
+                "jsCode": "// ── Same Zoom challenge/validation pattern as the attendee workflow ──\nconst body = $input.first().json.body || $input.first().json;\n\nconst isValidation = body.event === 'endpoint.url_validation';\nconst plainToken = body?.payload?.plainToken || '';\n\nlet encryptedToken = '';\nif (isValidation) {\n  const crypto = require('crypto');\n  // ⚠️ Replace with your Zoom App Secret Token (same as attendee workflow)\n  const secretToken = '8uEUEC7-Tf-wDkU2WKBdRA';\n  encryptedToken = crypto\n    .createHmac('sha256', secretToken)\n    .update(plainToken)\n    .digest('hex');\n}\n\nreturn [{ json: { isValidation, plainToken, encryptedToken, originalBody: body } }];"
+            },
+            "id": "f1a00000-0002-4000-8000-000000000002",
+            "name": "Code: Handle Zoom Challenge",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [240, 300]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "boolean": [
+                        {
+                            "value1": "={{ $json.isValidation }}",
+                            "value2": true
+                        }
+                    ]
+                }
+            },
+            "id": "f1a00000-0003-4000-8000-000000000003",
+            "name": "IF: Is Validation?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [480, 300]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ JSON.stringify({ plainToken: $json.plainToken, encryptedToken: $json.encryptedToken }) }}",
+                "options": {}
+            },
+            "id": "f1a00000-0004-4000-8000-000000000004",
+            "name": "Respond: Zoom Validation",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [720, 160]
+        },
+        {
+            "parameters": {
+                "respondWith": "noData",
+                "options": {}
+            },
+            "id": "f1a00000-0005-4000-8000-000000000005",
+            "name": "Respond: OK (Real Event)",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [720, 440]
+        },
+        {
+            "parameters": {
+                "jsCode": "const body = $('Code: Handle Zoom Challenge').first().json.originalBody;\nconst eventType = body.event || '';\nconst payload = body.payload || {};\nconst obj = payload.object || {};\n\nreturn [{\n  json: {\n    event_type: eventType,\n    is_webinar_ended: eventType === 'webinar.ended',\n    webinar_id: String(obj.id || ''),\n    webinar_topic: obj.topic || '',\n    host_id: obj.host_id || '',\n    start_time: obj.start_time || '',\n    duration: obj.duration || 0\n  }\n}];"
+            },
+            "id": "f1a00000-0006-4000-8000-000000000006",
+            "name": "Code: Parse Event",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [960, 440]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "webinar-ended-check",
+                            "leftValue": "={{ $json.is_webinar_ended }}",
+                            "rightValue": true,
+                            "operator": {
+                                "type": "boolean",
+                                "operation": "equals"
+                            }
+                        },
+                        {
+                            "id": "webinar-id-check",
+                            "leftValue": "={{ $json.webinar_id }}",
+                            "rightValue": "",
+                            "operator": {
+                                "type": "string",
+                                "operation": "notEmpty"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "id": "f1a00000-0007-4000-8000-000000000007",
+            "name": "IF: Is Webinar Ended?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [1200, 440]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://zoom.us/oauth/token?grant_type=account_credentials&account_id=ZOOM_ACCOUNT_ID_PLACEHOLDER",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpBasicAuth",
+                "options": {}
+            },
+            "id": "f1a00000-0008-4000-8000-000000000008",
+            "name": "HTTP: Get Zoom Access Token",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [1440, 440],
+            "credentials": {
+                "httpBasicAuth": {
+                    "id": "ZOOM_S2S_CREDENTIAL_ID",
+                    "name": "Zoom Server-to-Server OAuth"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "// ════════════════════════════════════════════════════════════\n// POST-WEBINAR GROUP BUILDER\n// Fetches all Zoom participants + registrants (with pagination),\n// cross-references them, and returns two groups:\n//   group: 'attended_no_call'  → Sequence A\n//   group: 'no_show'           → Sequence B\n// ════════════════════════════════════════════════════════════\n\n// ⚠️ FILL IN YOUR KIT SEQUENCE IDs BELOW\nconst SEQUENCE_A_ID = 'YOUR_SEQUENCE_A_ID';   // Attended, did NOT book a call\nconst SEQUENCE_B_ID = 'YOUR_SEQUENCE_B_ID';   // Registered but didn't show up\n\nconst eventData = $('Code: Parse Event').item.json;\nconst accessToken = $input.first().json.access_token;\nconst webinarId = eventData.webinar_id;\n\nif (!accessToken) throw new Error('No Zoom access token received — check your Server-to-Server OAuth credential.');\nif (!webinarId) throw new Error('No webinar ID in event payload.');\n\n// ── Helper: fetch all pages from a Zoom API endpoint ────────\nasync function fetchAllPages(baseUrl, itemsKey) {\n  let allItems = [];\n  let nextPageToken = '';\n  let page = 0;\n\n  do {\n    const sep = baseUrl.includes('?') ? '&' : '?';\n    const url = nextPageToken\n      ? `${baseUrl}${sep}next_page_token=${encodeURIComponent(nextPageToken)}`\n      : baseUrl;\n\n    let response;\n    try {\n      response = await $http.request({\n        method: 'GET',\n        url,\n        headers: { 'Authorization': `Bearer ${accessToken}` }\n      });\n    } catch (err) {\n      // Log and stop pagination on error (don't fail entire workflow)\n      console.error(`Zoom API error on page ${page} for ${baseUrl}: ${err.message}`);\n      break;\n    }\n\n    const items = response[itemsKey] || [];\n    allItems = allItems.concat(items);\n    nextPageToken = response.next_page_token || '';\n    page++;\n\n    if (page >= 30) {\n      console.warn(`Safety limit hit at 30 pages (${allItems.length} items) for ${baseUrl}`);\n      break;\n    }\n  } while (nextPageToken);\n\n  return allItems;\n}\n\n// ── 1. Fetch everyone who actually attended (Zoom Reports API) ──\n//    Requires scope: report:read:admin\nconst participants = await fetchAllPages(\n  `https://api.zoom.us/v2/report/webinars/${webinarId}/participants?page_size=300`,\n  'participants'\n);\n\n// ── 2. Fetch everyone who registered (including no-shows) ──\n//    Requires scope: webinar:read:admin\nconst registrants = await fetchAllPages(\n  `https://api.zoom.us/v2/webinars/${webinarId}/registrants?page_size=300&status=approved`,\n  'registrants'\n);\n\nconsole.log(`Zoom data: ${participants.length} participants, ${registrants.length} registrants for webinar ${webinarId}`);\n\n// ── 3. Build Set of attended emails ──────────────────────────\nconst attendedSet = new Set(\n  participants\n    .map(p => (p.user_email || p.email || '').toLowerCase().trim())\n    .filter(e => e !== '')\n);\n\n// ── 4. Build output items ─────────────────────────────────────\nconst seen = new Set();\nconst output = [];\n\n// Group A: Attended (no-call booking — Kit sequence conditions\n// or manual removal handles people who already booked a call)\nfor (const p of participants) {\n  const email = (p.user_email || p.email || '').toLowerCase().trim();\n  if (!email || seen.has(email)) continue;\n  seen.add(email);\n  const fullName = (p.name || p.user_name || '').trim();\n  output.push({\n    json: {\n      email,\n      first_name: fullName.split(' ')[0] || '',\n      full_name: fullName,\n      group: 'attended_no_call',\n      sequence_id: SEQUENCE_A_ID\n    }\n  });\n}\n\n// Group B: No-shows (registered but never joined)\nfor (const r of registrants) {\n  const email = (r.email || '').toLowerCase().trim();\n  if (!email || attendedSet.has(email) || seen.has(email)) continue;\n  seen.add(email);\n  const fullName = `${r.first_name || ''} ${r.last_name || ''}`.trim();\n  output.push({\n    json: {\n      email,\n      first_name: r.first_name || '',\n      full_name: fullName,\n      group: 'no_show',\n      sequence_id: SEQUENCE_B_ID\n    }\n  });\n}\n\nconst attendedCount = output.filter(i => i.json.group === 'attended_no_call').length;\nconst noShowCount = output.filter(i => i.json.group === 'no_show').length;\nconsole.log(`✅ Groups built: ${attendedCount} attended-no-call, ${noShowCount} no-shows. Total to enroll: ${output.length}`);\n\n// Return a sentinel if nobody to enroll (prevents downstream errors)\nif (output.length === 0) {\n  return [{ json: { group: '__empty__', email: '', sequence_id: '', first_name: '', full_name: '' } }];\n}\n\nreturn output;"
+            },
+            "id": "f1a00000-0009-4000-8000-000000000009",
+            "name": "Code: Fetch & Build Groups",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [1680, 440]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "has-people-check",
+                            "leftValue": "={{ $json.group }}",
+                            "rightValue": "__empty__",
+                            "operator": {
+                                "type": "string",
+                                "operation": "notEquals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "id": "f1a00000-0010-4000-8000-000000000010",
+            "name": "IF: Has People to Process?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [1920, 440]
+        },
+        {
+            "parameters": {
+                "batchSize": 100,
+                "options": {}
+            },
+            "id": "f1a00000-0011-4000-8000-000000000011",
+            "name": "Split In Batches (100/min)",
+            "type": "n8n-nodes-base.splitInBatches",
+            "typeVersion": 3,
+            "position": [2160, 440]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{ 'https://api.convertkit.com/v3/sequences/' + $json.sequence_id + '/subscribe' }}",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify({ api_key: 'YOUR_KIT_API_KEY_HERE', email: $json.email, first_name: $json.first_name || '' }) }}",
+                "options": {}
+            },
+            "id": "f1a00000-0012-4000-8000-000000000012",
+            "name": "HTTP: Kit — Add to Sequence",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [2400, 440],
+            "onError": "continueRegularOutput",
+            "retryOnFail": true,
+            "maxTries": 3,
+            "waitBetweenTries": 2000
+        },
+        {
+            "parameters": {
+                "resume": "timeInterval",
+                "unit": "seconds",
+                "amount": 62,
+                "options": {}
+            },
+            "id": "f1a00000-0013-4000-8000-000000000013",
+            "name": "Wait: 62s (Rate Limit Buffer)",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1.1,
+            "position": [2640, 440],
+            "webhookId": "wait-kit-rate-limit-buffer"
+        }
+    ],
+    "connections": {
+        "Webhook: Zoom Webinar Ended": {
+            "main": [
+                [
+                    {
+                        "node": "Code: Handle Zoom Challenge",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code: Handle Zoom Challenge": {
+            "main": [
+                [
+                    {
+                        "node": "IF: Is Validation?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "IF: Is Validation?": {
+            "main": [
+                [
+                    {
+                        "node": "Respond: Zoom Validation",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Respond: OK (Real Event)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Respond: OK (Real Event)": {
+            "main": [
+                [
+                    {
+                        "node": "Code: Parse Event",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code: Parse Event": {
+            "main": [
+                [
+                    {
+                        "node": "IF: Is Webinar Ended?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "IF: Is Webinar Ended?": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP: Get Zoom Access Token",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        },
+        "HTTP: Get Zoom Access Token": {
+            "main": [
+                [
+                    {
+                        "node": "Code: Fetch & Build Groups",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code: Fetch & Build Groups": {
+            "main": [
+                [
+                    {
+                        "node": "IF: Has People to Process?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "IF: Has People to Process?": {
+            "main": [
+                [
+                    {
+                        "node": "Split In Batches (100/min)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        },
+        "Split In Batches (100/min)": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP: Kit — Add to Sequence",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        },
+        "HTTP: Kit — Add to Sequence": {
+            "main": [
+                [
+                    {
+                        "node": "Wait: 62s (Rate Limit Buffer)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait: 62s (Rate Limit Buffer)": {
+            "main": [
+                [
+                    {
+                        "node": "Split In Batches (100/min)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "pinData": {},
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "8b0968e82080ca3a539101af649065d63cbf690891f13b85ab9a36398e21d5e8"
+    }
+}

@@ -1,0 +1,1436 @@
+{
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "bb314296-baa4-4736-8fbb-d61bed43f7ed",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2.1,
+            "position": [
+                -448,
+                384
+            ],
+            "id": "ce73ad1b-c319-4762-a208-efa8abf879c9",
+            "name": "Webhook",
+            "webhookId": "bb314296-baa4-4736-8fbb-d61bed43f7ed"
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "1",
+                            "name": "email",
+                            "value": "={{ $json.body.Email }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "2",
+                            "name": "name",
+                            "value": "={{ $json.body['First Name'] }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "3",
+                            "name": "first_name",
+                            "value": "={{ $json.body['First Name'] }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "4",
+                            "name": "last_name",
+                            "value": "={{ $json.body['Last Name'] || '' }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "5",
+                            "name": "amount",
+                            "value": "=19",
+                            "type": "number"
+                        },
+                        {
+                            "id": "6",
+                            "name": "timestamp",
+                            "value": "={{ $now.toISO() }}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "b586bced-3f4f-4c19-8bce-5de61d5cd31a",
+            "name": "Extract Email & Name",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                -224,
+                384
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT * FROM leads WHERE email = '{{ $('Extract Email & Name').item.json.email }}' LIMIT 1",
+                "options": {}
+            },
+            "id": "fa12b91e-8816-4150-a4a9-8df298f756f1",
+            "name": "Check Lead in Postgres",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                224,
+                384
+            ],
+            "alwaysOutputData": true,
+            "credentials": {
+                "postgres": {
+                    "id": "vHzmmnuirqKCSruC",
+                    "name": "Postgres account"
+                }
+            },
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "ph1",
+                            "name": "phone",
+                            "value": "={{ $json.phone }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "em1",
+                            "name": "email",
+                            "value": "={{ $(\"Extract Email & Name\").item.json.email }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "nm1",
+                            "name": "name",
+                            "value": "={{ $(\"Extract Email & Name\").item.json.name }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "fn1",
+                            "name": "first_name",
+                            "value": "={{ $json.first_name || $(\"Extract Email & Name\").item.json.name }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "ln1",
+                            "name": "last_name",
+                            "value": "={{ $json.last_name || \"\" }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "am1",
+                            "name": "amount",
+                            "value": "={{ $(\"Extract Email & Name\").item.json.amount }}",
+                            "type": "number"
+                        },
+                        {
+                            "id": "ts1",
+                            "name": "timestamp",
+                            "value": "={{ $(\"Extract Email & Name\").item.json.timestamp }}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "1029415a-fad9-4e55-8713-50ccb6a9679b",
+            "name": "Extract Phone from Lead",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                672,
+                192
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://live-server-114977.wati.io/api/v1/sendTemplateMessage",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"template_name\": \"webinar_oto_purchase\",\n  \"broadcast_name\": \"webinar_oto_purchase\",\n  \"parameters\": [{\"name\": \"name\", \"value\": \"{{ $json.first_name }}\"}],\n  \"receivers\": [{\"whatsappNumber\": \"{{ $json.phone }}\", \"customParams\": [{\"name\": \"name\", \"value\": \"{{ $json.first_name }}\"}]}]\n}",
+                "options": {
+                    "response": {
+                        "response": {
+                            "responseFormat": "json"
+                        }
+                    }
+                }
+            },
+            "id": "247af21d-479b-4b5a-926e-9cc21f35dda0",
+            "name": "Send WhatsApp Template Message",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.4,
+            "position": [
+                1120,
+                192
+            ],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "6ORCx5pBolsypKiC",
+                    "name": "Wati Bearer Token"
+                }
+            },
+            "disabled": true
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://rykhufcfiooqosgglabb.supabase.co/functions/v1/low-ticket-purchase-webhook",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "name": "x-webinar-secret",
+                            "value": "a38a3ad477868108216b4985d07315f3254848c855b9e7f4"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"email\": \"{{ $('Select rows from a table').item.json.email }}\",\n  \"first_name\": \"{{ $('Select rows from a table').item.json.first_name }}\",\n  \"last_name\": \"{{ $('Select rows from a table').item.json.last_name }}\",\n  \"phone\": \"{{ $('Extract Phone from Lead').item.json.phone }}\",\n  \"amount\": 19,\n  \"currency\": \"GBP\",\n  \"paid_at\": \"{{ $('Extract Email & Name').item.json.timestamp }}\"\n}",
+                "options": {
+                    "response": {
+                        "response": {
+                            "responseFormat": "json"
+                        }
+                    }
+                }
+            },
+            "id": "27f88a48-29d5-420d-bf8e-557c8bae6043",
+            "name": "Send to Supabase (Lead)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.4,
+            "position": [
+                1344,
+                192
+            ]
+        },
+        {
+            "parameters": {
+                "resource": "sequence",
+                "id": 2820693,
+                "email": "={{ $(\"Extract Email & Name\").item.json.email }}",
+                "additionalFields": {
+                    "fieldsUi": {
+                        "fieldsValues": [
+                            {
+                                "key": "first_name",
+                                "value": "={{ $(\"Extract Email & Name\").item.json.name }}"
+                            }
+                        ]
+                    }
+                }
+            },
+            "id": "5870a555-3229-457d-88da-4ced093e48c5",
+            "name": "Add to ConvertKit",
+            "type": "n8n-nodes-base.convertKit",
+            "typeVersion": 1,
+            "position": [
+                1568,
+                192
+            ],
+            "credentials": {
+                "convertKitApi": {
+                    "id": "FvJ5jXT6LL5kC5x3",
+                    "name": "ConvertKit account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "url": "=https://api.close.com/api/v1/lead/?query=email:{{ $(\"Extract Email & Name\").item.json.email }}",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpBasicAuth",
+                "options": {
+                    "response": {
+                        "response": {
+                            "responseFormat": "json"
+                        }
+                    }
+                }
+            },
+            "id": "982cfc36-1442-4ffc-a94c-eeeb0c6c31be",
+            "name": "Find Lead in Close",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.4,
+            "position": [
+                1792,
+                192
+            ],
+            "credentials": {
+                "httpBasicAuth": {
+                    "id": "dJmQ0AFSNKMEj05l",
+                    "name": "Close CRM"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "PUT",
+                "url": "=https://api.close.com/api/v1/lead/{{ $json.data[0].id }}/",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpBasicAuth",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ { \"status_id\": \"stat_rVquqdrDHCPBWMq8tDnctN6OkK29Ck3O9MZqfY0iMUW\" } }}",
+                "options": {
+                    "response": {
+                        "response": {
+                            "responseFormat": "json"
+                        }
+                    }
+                }
+            },
+            "id": "0a8f29c2-9f02-40d7-9ff1-9f4819d17ca9",
+            "name": "Update Lead Status",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.4,
+            "position": [
+                2016,
+                192
+            ],
+            "credentials": {
+                "httpBasicAuth": {
+                    "id": "dJmQ0AFSNKMEj05l",
+                    "name": "Close CRM"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "select": "channel",
+                "channelId": {
+                    "__rl": true,
+                    "value": "=C0BG14GAX25",
+                    "mode": "id"
+                },
+                "text": "=🎉 New purchase! {{ $(\"Extract Email & Name\").item.json.name }} ({{ $(\"Extract Email & Name\").item.json.email }}) just bought the webinar OTO!",
+                "otherOptions": {
+                    "includeLinkToWorkflow": false
+                }
+            },
+            "id": "4f5b9cb2-6a82-4553-87a8-4d525f6fe78d",
+            "name": "Notify Slack",
+            "type": "n8n-nodes-base.slack",
+            "typeVersion": 2.5,
+            "position": [
+                2240,
+                192
+            ],
+            "webhookId": "4d64ac73-cb19-4096-93d2-547aeff9925f",
+            "credentials": {
+                "slackApi": {
+                    "id": "8bZIBpiUegrMppJK",
+                    "name": "Slack account 2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "ph2",
+                            "name": "phone",
+                            "value": "",
+                            "type": "string"
+                        },
+                        {
+                            "id": "em2",
+                            "name": "email",
+                            "value": "={{ $(\"Extract Email & Name\").item.json.email }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "nm2",
+                            "name": "name",
+                            "value": "={{ $(\"Extract Email & Name\").item.json.name }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "fn2",
+                            "name": "first_name",
+                            "value": "={{ $(\"Extract Email & Name\").item.json.name }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "ln2",
+                            "name": "last_name",
+                            "value": "",
+                            "type": "string"
+                        },
+                        {
+                            "id": "am2",
+                            "name": "amount",
+                            "value": "={{ $(\"Extract Email & Name\").item.json.amount }}",
+                            "type": "number"
+                        },
+                        {
+                            "id": "ts2",
+                            "name": "timestamp",
+                            "value": "={{ $(\"Extract Email & Name\").item.json.timestamp }}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "924682a4-f106-430a-8064-5f1a36531639",
+            "name": "No Lead – Set Defaults",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                672,
+                480
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://rykhufcfiooqosgglabb.supabase.co/functions/v1/low-ticket-purchase-webhook",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "name": "x-webinar-secret",
+                            "value": "a38a3ad477868108216b4985d07315f3254848c855b9e7f4"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"email\": \"{{ $json.email }}\",\n  \"first_name\": \"{{ $json.first_name }}\",\n  \"last_name\": \"{{ $json.last_name }}\",\n  \"phone\": \"{{ $json.phone }}\",\n  \"amount\": {{ $json.amount }},\n  \"currency\": \"GBP\",\n  \"paid_at\": \"{{ $json.timestamp }}\"\n}",
+                "options": {
+                    "response": {
+                        "response": {
+                            "responseFormat": "json"
+                        }
+                    }
+                }
+            },
+            "id": "2cd70151-27f7-4779-b7c5-d49e35b772f3",
+            "name": "Send to Supabase (No Lead)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.4,
+            "position": [
+                896,
+                480
+            ]
+        },
+        {
+            "parameters": {
+                "resource": "sequence",
+                "id": 2820693,
+                "email": "={{ $(\"Extract Email & Name\").item.json.email }}",
+                "additionalFields": {
+                    "fieldsUi": {
+                        "fieldsValues": [
+                            {
+                                "key": "first_name",
+                                "value": "={{ $(\"Extract Email & Name\").item.json.name }}"
+                            }
+                        ]
+                    }
+                }
+            },
+            "id": "7663417a-6258-4ee7-ad99-3fc69fe4cf41",
+            "name": "Add to ConvertKit (No Lead)",
+            "type": "n8n-nodes-base.convertKit",
+            "typeVersion": 1,
+            "position": [
+                1120,
+                480
+            ],
+            "credentials": {
+                "convertKitApi": {
+                    "id": "FvJ5jXT6LL5kC5x3",
+                    "name": "ConvertKit account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "url": "=https://api.close.com/api/v1/lead/?query=email:{{ $(\"Extract Email & Name\").item.json.email }}",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpBasicAuth",
+                "options": {
+                    "response": {
+                        "response": {
+                            "responseFormat": "json"
+                        }
+                    }
+                }
+            },
+            "id": "dfcc661d-9e72-401c-96c2-12ed0b0a1b27",
+            "name": "Find Lead in Close (No Lead)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.4,
+            "position": [
+                1344,
+                480
+            ],
+            "credentials": {
+                "httpBasicAuth": {
+                    "id": "dJmQ0AFSNKMEj05l",
+                    "name": "Close CRM"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "PUT",
+                "url": "=https://api.close.com/api/v1/lead/{{ $('Find Lead in Close (No Lead)').item.json.data[0].id }}/",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpBasicAuth",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ { \"status_id\": \"stat_rVquqdrDHCPBWMq8tDnctN6OkK29Ck3O9MZqfY0iMUW\" } }}",
+                "options": {
+                    "response": {
+                        "response": {
+                            "responseFormat": "json"
+                        }
+                    }
+                }
+            },
+            "id": "f8fe3805-569c-46c3-affe-fb4cb464c966",
+            "name": "Update Lead Status (No Lead)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.4,
+            "position": [
+                1792,
+                384
+            ],
+            "credentials": {
+                "httpBasicAuth": {
+                    "id": "dJmQ0AFSNKMEj05l",
+                    "name": "Close CRM"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "select": "channel",
+                "channelId": {
+                    "__rl": true,
+                    "value": "=C0BG14GAX25",
+                    "mode": "id"
+                },
+                "text": "=🎉 New purchase! {{ $(\"Extract Email & Name\").item.json.name }} ({{ $(\"Extract Email & Name\").item.json.email }}) just bought the webinar OTO!",
+                "otherOptions": {
+                    "includeLinkToWorkflow": false
+                }
+            },
+            "id": "66261781-6b6d-4431-8bf6-b3f1d5cc7ed3",
+            "name": "Notify Slack (No Lead)",
+            "type": "n8n-nodes-base.slack",
+            "typeVersion": 2.5,
+            "position": [
+                2016,
+                384
+            ],
+            "webhookId": "4d64ac73-cb19-4096-93d2-547aeff9925f",
+            "credentials": {
+                "slackApi": {
+                    "id": "8bZIBpiUegrMppJK",
+                    "name": "Slack account 2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "735a96ab-f2a7-413b-bbb1-b35f3ced3c80",
+                            "leftValue": "={{ $json.id }}",
+                            "rightValue": "",
+                            "operator": {
+                                "type": "string",
+                                "operation": "exists",
+                                "singleValue": true
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                448,
+                384
+            ],
+            "id": "eec177b6-0189-4d76-aa7b-6bde0ace2461",
+            "name": "Lead Exists?"
+        },
+        {
+            "parameters": {
+                "operation": "select",
+                "schema": {
+                    "__rl": true,
+                    "mode": "list",
+                    "value": "public"
+                },
+                "table": {
+                    "__rl": true,
+                    "value": "webinar_registrants",
+                    "mode": "list",
+                    "cachedResultName": "webinar_registrants"
+                },
+                "limit": 1,
+                "where": {
+                    "values": [
+                        {
+                            "column": "email",
+                            "value": "={{ $('Check Lead in Postgres').item.json.email }}"
+                        }
+                    ]
+                },
+                "sort": {
+                    "values": [
+                        {
+                            "column": "updated_at",
+                            "direction": "DESC"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.6,
+            "position": [
+                896,
+                192
+            ],
+            "id": "763b2f73-76ed-4eef-90e4-c5c1f5641e78",
+            "name": "Select rows from a table",
+            "credentials": {
+                "postgres": {
+                    "id": "vHzmmnuirqKCSruC",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "amount": 4,
+                "unit": "minutes"
+            },
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1.1,
+            "position": [
+                0,
+                384
+            ],
+            "id": "e57babe0-a8ae-423d-a249-57f211a9e1a2",
+            "name": "4m Delay",
+            "webhookId": "9b8e1dfe-d62a-453e-9ba4-8d8fc46dc732"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "b0759ca2-0b75-4849-b02e-4e449a273652",
+                            "leftValue": "={{ $json.total_results }}",
+                            "rightValue": 0,
+                            "operator": {
+                                "type": "number",
+                                "operation": "gt"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                1568,
+                480
+            ],
+            "id": "f83da2fd-2b9a-464d-b950-740883a8b5dd",
+            "name": "If Exist?"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.close.com/api/v1/lead/",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpBasicAuth",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify({ name: $('No Lead \\u2013 Set Defaults').item.json.first_name + ' ' + $('No Lead \\u2013 Set Defaults').item.json.last_name, contacts: [Object.assign({ name: $('No Lead \\u2013 Set Defaults').item.json.first_name + ' ' + $('No Lead \\u2013 Set Defaults').item.json.last_name, emails: [{ email: $('No Lead \\u2013 Set Defaults').item.json.email, type: 'office' }] }, $('No Lead \\u2013 Set Defaults').item.json.phone ? { phones: [{ phone: $('No Lead \\u2013 Set Defaults').item.json.phone, type: 'mobile' }] } : {})], 'status_id': 'stat_rVquqdrDHCPBWMq8tDnctN6OkK29Ck3O9MZqfY0iMUW' }) }}",
+                "options": {}
+            },
+            "id": "6584d35f-6723-4295-9351-0f29a7333bc8",
+            "name": "HTTP: Close — Create Lead1",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                1792,
+                576
+            ],
+            "credentials": {
+                "httpBasicAuth": {
+                    "id": "dJmQ0AFSNKMEj05l",
+                    "name": "Close CRM"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "select": "channel",
+                "channelId": {
+                    "__rl": true,
+                    "value": "=C0BG14GAX25",
+                    "mode": "id"
+                },
+                "text": "=🎉 New purchase! {{ $(\"Extract Email & Name\").item.json.name }} ({{ $(\"Extract Email & Name\").item.json.email }}) just bought the webinar OTO!",
+                "otherOptions": {
+                    "includeLinkToWorkflow": false
+                }
+            },
+            "id": "b641ed68-6223-4754-8486-b85fbe010b3d",
+            "name": "Notify Slack (No Lead)1",
+            "type": "n8n-nodes-base.slack",
+            "typeVersion": 2.5,
+            "position": [
+                2016,
+                576
+            ],
+            "webhookId": "4d64ac73-cb19-4096-93d2-547aeff9925f",
+            "credentials": {
+                "slackApi": {
+                    "id": "8bZIBpiUegrMppJK",
+                    "name": "Slack account 2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "schema": {
+                    "__rl": true,
+                    "mode": "list",
+                    "value": "public"
+                },
+                "table": {
+                    "__rl": true,
+                    "value": "leads",
+                    "mode": "list",
+                    "cachedResultName": "leads"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {},
+                    "matchingColumns": [
+                        "id"
+                    ],
+                    "schema": [
+                        {
+                            "id": "id",
+                            "displayName": "id",
+                            "required": false,
+                            "defaultMatch": true,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "email",
+                            "displayName": "email",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "phone",
+                            "displayName": "phone",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "name",
+                            "displayName": "name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "budget",
+                            "displayName": "budget",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "funnel_type",
+                            "displayName": "funnel_type",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "options",
+                            "canBeUsedToMatch": true,
+                            "options": [
+                                {
+                                    "name": "vsl",
+                                    "value": "vsl"
+                                },
+                                {
+                                    "name": "webinar",
+                                    "value": "webinar"
+                                },
+                                {
+                                    "name": "dm",
+                                    "value": "dm"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "lead_source",
+                            "displayName": "lead_source",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "utm_source",
+                            "displayName": "utm_source",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "utm_medium",
+                            "displayName": "utm_medium",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "utm_campaign",
+                            "displayName": "utm_campaign",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "utm_adset",
+                            "displayName": "utm_adset",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "utm_ad",
+                            "displayName": "utm_ad",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "closer_id",
+                            "displayName": "closer_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "setter_id",
+                            "displayName": "setter_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "current_status",
+                            "displayName": "current_status",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "options",
+                            "canBeUsedToMatch": true,
+                            "options": [
+                                {
+                                    "name": "new",
+                                    "value": "new"
+                                },
+                                {
+                                    "name": "contacted",
+                                    "value": "contacted"
+                                },
+                                {
+                                    "name": "qualified",
+                                    "value": "qualified"
+                                },
+                                {
+                                    "name": "unqualified",
+                                    "value": "unqualified"
+                                },
+                                {
+                                    "name": "no_show",
+                                    "value": "no_show"
+                                },
+                                {
+                                    "name": "canceled",
+                                    "value": "canceled"
+                                },
+                                {
+                                    "name": "rescheduled",
+                                    "value": "rescheduled"
+                                },
+                                {
+                                    "name": "follow_up",
+                                    "value": "follow_up"
+                                },
+                                {
+                                    "name": "closed_deal",
+                                    "value": "closed_deal"
+                                },
+                                {
+                                    "name": "booked",
+                                    "value": "booked"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "calendly_event_id",
+                            "displayName": "calendly_event_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "close_crm_id",
+                            "displayName": "close_crm_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "typeform_response_id",
+                            "displayName": "typeform_response_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "call_booked_at",
+                            "displayName": "call_booked_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "call_taken_at",
+                            "displayName": "call_taken_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "webinar_date",
+                            "displayName": "webinar_date",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "webinar_name",
+                            "displayName": "webinar_name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "webinar_attended_at",
+                            "displayName": "webinar_attended_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "webinar_registered_at",
+                            "displayName": "webinar_registered_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "created_at",
+                            "displayName": "created_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "updated_at",
+                            "displayName": "updated_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "challenge",
+                            "displayName": "challenge",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "goal",
+                            "displayName": "goal",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "experience",
+                            "displayName": "experience",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "ghl_contact_id",
+                            "displayName": "ghl_contact_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "instagram",
+                            "displayName": "instagram",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.6,
+            "position": [
+                2240,
+                576
+            ],
+            "id": "e67953fd-681e-4311-9b48-4145ca1595a0",
+            "name": "Insert rows in a table",
+            "credentials": {
+                "postgres": {
+                    "id": "vHzmmnuirqKCSruC",
+                    "name": "Postgres account"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Email & Name",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract Email & Name": {
+            "main": [
+                [
+                    {
+                        "node": "4m Delay",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check Lead in Postgres": {
+            "main": [
+                [
+                    {
+                        "node": "Lead Exists?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract Phone from Lead": {
+            "main": [
+                [
+                    {
+                        "node": "Select rows from a table",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Send WhatsApp Template Message": {
+            "main": [
+                [
+                    {
+                        "node": "Send to Supabase (Lead)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Send to Supabase (Lead)": {
+            "main": [
+                [
+                    {
+                        "node": "Add to ConvertKit",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Add to ConvertKit": {
+            "main": [
+                [
+                    {
+                        "node": "Find Lead in Close",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Find Lead in Close": {
+            "main": [
+                [
+                    {
+                        "node": "Update Lead Status",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Update Lead Status": {
+            "main": [
+                [
+                    {
+                        "node": "Notify Slack",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "No Lead – Set Defaults": {
+            "main": [
+                [
+                    {
+                        "node": "Send to Supabase (No Lead)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Send to Supabase (No Lead)": {
+            "main": [
+                [
+                    {
+                        "node": "Add to ConvertKit (No Lead)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Add to ConvertKit (No Lead)": {
+            "main": [
+                [
+                    {
+                        "node": "Find Lead in Close (No Lead)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Find Lead in Close (No Lead)": {
+            "main": [
+                [
+                    {
+                        "node": "If Exist?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Update Lead Status (No Lead)": {
+            "main": [
+                [
+                    {
+                        "node": "Notify Slack (No Lead)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Notify Slack (No Lead)": {
+            "main": [
+                [
+                    {
+                        "node": "Insert rows in a table",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Lead Exists?": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Phone from Lead",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "No Lead – Set Defaults",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Select rows from a table": {
+            "main": [
+                [
+                    {
+                        "node": "Send WhatsApp Template Message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "4m Delay": {
+            "main": [
+                [
+                    {
+                        "node": "Check Lead in Postgres",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If Exist?": {
+            "main": [
+                [
+                    {
+                        "node": "Update Lead Status (No Lead)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "HTTP: Close — Create Lead1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP: Close — Create Lead1": {
+            "main": [
+                [
+                    {
+                        "node": "Notify Slack (No Lead)1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Notify Slack (No Lead)1": {
+            "main": [
+                [
+                    {
+                        "node": "Insert rows in a table",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "pinData": {
+        "Webhook": [
+            {
+                "headers": {
+                    "host": "propertyhussle.app.n8n.cloud",
+                    "user-agent": "Zapier",
+                    "content-length": "64",
+                    "accept": "*/*",
+                    "accept-encoding": "gzip, br",
+                    "cdn-loop": "cloudflare; loops=1; subreqs=1",
+                    "cf-connecting-ip": "44.214.195.65",
+                    "cf-ew-via": "15",
+                    "cf-ipcountry": "US",
+                    "cf-ray": "a243e10c48c42f24-IAD",
+                    "cf-visitor": "{\"scheme\":\"https\"}",
+                    "cf-worker": "n8n.cloud",
+                    "content-type": "application/json; charset=utf-8",
+                    "x-forwarded-for": "44.214.195.65, 172.71.222.99",
+                    "x-forwarded-host": "propertyhussle.app.n8n.cloud",
+                    "x-forwarded-port": "443",
+                    "x-forwarded-proto": "https",
+                    "x-forwarded-server": "traefik-prod-users-gwc-33-6548f7bf9d-2jzs6",
+                    "x-is-trusted": "yes",
+                    "x-real-ip": "44.214.195.65"
+                },
+                "params": {},
+                "query": {},
+                "body": {
+                    "Email": "jermaineamoah2@hotmail.co.uk",
+                    "First Name": "Jermaine"
+                },
+                "webhookUrl": "https://propertyhussle.app.n8n.cloud/webhook/bb314296-baa4-4736-8fbb-d61bed43f7ed",
+                "executionMode": "production"
+            }
+        ],
+        "Send to Supabase (Lead)": [
+            {
+                "ok": true,
+                "payment_id": "4ea67cff-eb67-4e7a-9488-bbda882bd63f",
+                "lead_id": "182de7c7-a768-48aa-90de-305377c1e347",
+                "matched": true
+            }
+        ]
+    },
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "8b0968e82080ca3a539101af649065d63cbf690891f13b85ab9a36398e21d5e8"
+    }
+}

@@ -1,0 +1,38 @@
+n8n Workflow Expert | Fix Broken Automations & API Integrations 
+$10.00/hr 
+
+I help teams 𝐟𝐢𝐱 𝐮𝐧𝐬𝐭𝐚𝐛𝐥𝐞 𝐧𝟖𝐧 𝐰𝐨𝐫𝐤𝐟𝐥𝐨𝐰𝐬, 𝐝𝐞𝐛𝐮𝐠 𝐟𝐚𝐢𝐥𝐢𝐧𝐠 𝐀𝐏𝐈 𝐢𝐧𝐭𝐞𝐠𝐫𝐚𝐭𝐢𝐨𝐧𝐬, 𝐚𝐧𝐝 𝐫𝐞𝐛𝐮𝐢𝐥𝐝 𝐚𝐮𝐭𝐨𝐦𝐚𝐭𝐢𝐨𝐧𝐬 that stopped working, 𝐰𝐢𝐭𝐡𝐨𝐮𝐭 𝐬𝐭𝐚𝐫𝐭𝐢𝐧𝐠 𝐟𝐫𝐨𝐦 𝐬𝐜𝐫𝐚𝐭𝐜𝐡. Whether you need to diagnose a broken workflow, build a new n8n system, or scale an existing automation, I architect production-grade solutions with webhooks, custom code, and reliable error handling.
+
+⚡ What I Deliver (Fix, Build, Scale)
+
+• 𝐅𝐢𝐱 & 𝐃𝐞𝐛𝐮𝐠: Diagnose and repair broken n8n automations, API failures, and data sync issues—fast, without full rebuilds.
+• 𝐁𝐮𝐢𝐥𝐝 𝐒𝐜𝐚𝐥𝐚𝐛𝐥𝐞 𝐖𝐨𝐫𝐤𝐟𝐥𝐨𝐰𝐬: End-to-end n8n solutions (cloud/self-hosted) with webhooks, multi-step APIs, custom JS/Python, error handling, and monitoring.
+• 𝐖𝐞𝐛𝐡𝐨𝐨𝐤𝐬 & 𝐀𝐏𝐈 𝐀𝐫𝐜𝐡𝐢𝐭𝐞𝐜𝐭𝐮𝐫𝐞: Expert setup of webhook receivers, payload parsing, API authentication (OAuth2, Bearer, API keys), rate limiting, and seamless data flow between HubSpot, Stripe, Tele-gram, Google Sheets, Airtable, Supabase, WooCommerce, and more.
+• 𝐒𝐜𝐚𝐥𝐞 & 𝐎𝐩𝐭𝐢𝐦𝐢𝐳𝐞: Refactor and optimize existing workflows for speed, reliability, and growth.
+• 𝐂𝐮𝐬𝐭𝐨𝐦 𝐂𝐨𝐝𝐞 & 𝐀𝐈: Advanced JS/Python nodes for complex logic, web scraping, and AI integrations (OpenAI, Gemini, Claude).
+
+⚡ Recent Results
+
+• Automated lead pipeline: 500+ daily leads via n8n webhooks, Python enrichment, HubSpot sync, and OpenAI personalization.
+• Inventory sync: Automated competitor price checks and WooCommerce updates, saving 6+ hours/week.
+• Tele-gram news bot: Fully automated news curation and posting using n8n, Gemini, and webhooks.
+• Document processing: 200+ docs/week auto-tagged and stored with n8n, Python, and Supabase.
+
+⚡ How I Work
+
+𝟏. Diagnose issues or map new workflows.
+𝟐. Share a clear architecture plan.
+𝟑. Build, test, and document in n8n.
+𝟒. Handoff with guides and support for scaling.
+
+⚡ n8n Technical Stack
+
+• n8n (cloud/self-hosted), workflow design, error handling, CLI, custom node dev
+• Webhook architecture: receivers, signature verification, idempotency, rate limiting
+• Custom code: JavaScript (Node.js), Python
+• API integrations: REST, OAuth2, Bearer, API keys
+• Platforms: HubSpot, Whats-App, Slack, Stripe, Tele-gram, Google Sheets, Airtable, Supabase, WooCommerce, PostgreSQL, MongoDB
+• AI: OpenAI, Gemini, Claude
+• Data pipelines: multi-step, transformation, web scraping (Playwright, Puppeteer, Cheerio)
+
+💡 Have a broken n8n workflow or need new automation? Message me for a fast, actionable plan.

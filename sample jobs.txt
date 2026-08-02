@@ -1,0 +1,510 @@
+# Job 1.
+CRM Database Specialist Needed for Data Cleaning, Enrichment, and Lead Scraping
+Posted 41 minutes ago
+Worldwide
+
+Summary
+# CRM Database Specialist Needed for Data Cleaning, Enrichment, and Lead Scraping
+
+We are looking for an experienced **CRM and data scraping specialist** to organize, clean, enrich, and expand our customer and lead database in Iraq.
+
+## Phase 1: Combine Existing Customer Data
+
+Our customer and lead information is stored across multiple files and contains duplicates. The first task is to consolidate all records into one CRM system or structured database.
+
+Required fields include:
+
+* Business name
+* Contact person or owner name
+* Phone and WhatsApp numbers
+* Customer type: pharmacy, drug warehouse, cosmetics store, e-commerce store, wholesaler, or other
+* City and full location
+* Google Maps link
+* Instagram account
+* Instagram follower count
+* Last order date
+* Last order value
+* Last visit date
+* Data source
+* Notes and customer status
+
+Please also recommend additional useful CRM fields such as sales representative, customer priority, purchase frequency, payment terms, preferred brands, lead stage, and follow-up date.
+
+Our main communication channel is **WhatsApp**, so the database must be suitable for segmentation and approved bulk messaging.
+
+## Phase 2: Enrich Pharmacy and Drug-Warehouse Records
+
+We already have a full list of pharmacies and drug warehouses in Iraq.
+
+The selected freelancer will:
+
+* Match the list against our existing database
+* Identify missing information
+* Search public online sources for business contact numbers
+* Add locations, Google Maps links, Instagram accounts, and follower counts
+* Remove duplicates and verify data accuracy
+
+## Phase 3: Generate New Business Leads
+
+Collect additional publicly available business leads in Iraq, including:
+
+* Pharmacies
+* Drug warehouses
+* Cosmetics stores
+* E-commerce stores
+* Wholesalers
+* Beauty and personal-care retailers
+* Other relevant businesses
+
+Lead sources may include Google Maps, websites, business directories, and public social media pages.
+
+## Deliverables
+
+* Clean and deduplicated CRM database
+* Standardized and verified customer records
+* Enriched pharmacy and drug-warehouse database
+* New qualified lead database
+* Clear source and verification status for each record
+* CRM and WhatsApp segmentation recommendations
+
+## Required Experience
+
+* CRM setup and data migration
+* Excel or Google Sheets data cleaning
+* Web scraping and data enrichment
+* Google Maps and social media research
+* Duplicate detection and record matching
+* Experience with Iraqi or Arabic-language business data is preferred
+
+Please include examples of similar CRM, lead-generation, or data-enrichment projects you have completed.
+
+Less than 30 hrs/week
+Hourly
+1 to 3 months
+Duration
+Intermediate
+I am looking for a mix of experience and value
+$20.00
+
+-
+
+$40.00
+
+Hourly
+Project Type: Ongoing project
+Skills and Expertise
+Mandatory skills
+Scrapy
+n8n
+Make.com
+Beautiful Soup
+Selenium
+StormCrawler
+AI Builder
+Apache Nutch
+Zapier
+AI Trading
+API Integration
+Automation
+Customer Relationship Management
+Data Scraping
+Lead Generation
+Instagram API
+Web scraping and data extraction
+Social media and Instagram scraping
+Contact information verification
+WhatsApp CRM or WhatsApp Business integration
+PhantomBuster
+Octoparse
+Apify
+Data Cleaning
+Nice-to-have skills
+Database Management
+Database Design
+
+
+# Job 2.
+
+Build simple n8n workflow to sync form submissions to Google Sheets
+Posted 6 hours ago
+Worldwide
+
+Summary
+I need a simple automation that captures incoming emails and logs them into a Google Sheet automatically.
+
+What I need:
+- When a new email arrives (from a specific sender / with a specific subject), the automation should extract key fields and add them as a new row in a Google Sheet.
+- Fields to capture: sender name, sender email, subject, date received, and the message body (or specific values parsed from the body).
+- Should run automatically without manual triggering.
+
+Preferred tools: Zapier, Make.com, or n8n. Open to your recommendation if you have a cleaner approach.
+
+Scope is small and well-defined, this is one workflow. Please share:
+- A short note on how you'd build this and which tool you'd use.
+- Roughly how long it would take.
+- Any similar automations you've built before.
+
+Looking for clear communication and someone who can hand this off cleanly so I can maintain it myself later.
+
+$10.00
+
+Fixed-price
+Intermediate
+I am looking for a mix of experience and value
+Contract-to-hire opportunity
+This lets talent know that this job could become full time.
+Learn more
+Project Type: One-time project
+Skills and Expertise
+Mandatory skills
+Automation
+n8n
+Google Sheets
+
+
+
+# Job 3.
+
+Long-Term AI Automation Partner (n8n / GHL / AI Agents)
+Posted 5 hours ago
+Worldwide
+
+Summary
+I’m building a long-term delivery team for NovaFlow, an AI automation agency. Typical projects include n8n automations, AI agents, API integrations, CRM workflows, Voice AI, custom business automations and AI-powered solutions. There is no immediate project—I’m looking for reliable experts to work with on future client projects. I’m looking for long-term collaboration, clear communication, high-quality work and fast turnaround times.
+
+Less than 30 hrs/week
+Hourly
+Less than 1 month
+Duration
+Intermediate
+I am looking for a mix of experience and value
+Project Type: One-time project
+Skills and Expertise
+Mandatory skills
+Chatbot Development
+Artificial Intelligence
+AI Agent Development
+Machine Learning
+n8n
+API
+Make.com
+Automation
+Marketing Automation
+Business Process Automation
+AI Chatbot
+Automated Workflow
+Task Automation
+Zapier
+CRM Automation
+Clay
+Claude
+Python
+JavaScript
+
+
+# Job 4.
+
+Setup OCR in Google Cloud Console
+Posted 8 hours ago
+Worldwide
+
+Summary
+I am looking for a freelancer to set up OCR reading of screenshots and input the data into a spreadsheet using Google Cloud Console. The task involves finding a way to upload screenshots to OCR. The ideal candidate should have experience with Google Cloud Console and OCR technologies.
+
+Less than 30 hrs/week
+Hourly
+Less than 1 month
+Duration
+Intermediate
+I am looking for a mix of experience and value
+$15.00
+
+-
+
+$35.00
+
+Hourly
+Project Type: One-time project
+Skills and Expertise
+Mandatory skills
+Google Apps Script
+Apps Script API
+Nice-to-have skills
+Google App Engine
+Google Spreadsheets API
+
+
+# Job 5.
+
+n8n Automation Build: CRM Intake, AI Call Classifying & Follow-up (Notion + Shopify + Gmail + Quo)
+Posted 4 hours ago
+Worldwide
+
+Summary
+I run an ecommerce business selling high-ticket wellness equipment. I need an experienced n8n developer to build a lead automation system connecting OpenPhone, Gmail, Notion, Shopify, and the Claude API.
+
+THE DESIGN WORK IS DONE.
+
+You'll receive a complete build brief (~380 lines) specifying every workflow, database schema, matching rule, message template, and edge case. Your job is implementation, not discovery. The brief includes a suggested build order with 5 milestones.
+
+I've attached a system flowchart showing how the whole build fits together. The full brief is shared with shortlisted candidates.
+
+WHAT YOU'LL BUILD (on n8n Cloud):
+
+1. Notion setup + migration — consolidate two existing lead tables into one, add fields per the provided schema (one-time)
+
+2. Call & email intake — OpenPhone call-completed and Gmail triggers → one LLM step (Claude API) classifies each call/email (new lead / support / spam) and extracts structured fields → creates/updates rows in the right Notion table, with dedup by phone/email
+
+3. Follow-up engine — scheduled sequence (4 touches: SMS via OpenPhone, email via Gmail) with state-based message branching, exact send times with timezone handling, message tagging, pause-on-customer-reply, reset-on-owner-outbound with Gmail thread capture, and 5-day auto-resume. This is the most intricate flow; the tagging/detection logic is fully specified.
+
+4. Shopify listeners — order-paid → flip lead status + create supplier tracker row; fulfillment-created → sync tracking number + status
+
+5. Supplier watchdog + support alerts — daily business-day-aware check with per-product thresholds → alert digest to me; per-issue SMS alerts and a stale-issue nudge on the support table
+
+STACK: n8n Cloud, Notion API, Shopify webhooks, Gmail API, OpenPhone API, Anthropic (Claude) API for classification/extraction/composition steps.
+
+VOLUME IS SMALL (3–5 leads/day) — this is about reliability and correct edge-case handling, not scale.
+
+HOW WE'LL WORK: 
+Milestone-based, following the build order above. I review and test each milestone before the next begins. I'm responsive and the spec answers most questions, but I'm available for the ones it doesn't.
+
+TO APPLY, PLEASE ANSWER:
+
+1. Have you built n8n workflows that call an LLM API for classification with structured JSON output? Describe one briefly.
+
+2. Have you worked with the Notion API (create/update/query databases)?
+
+3. Have you handled Gmail send/reply threading in an automation (replying within an existing thread programmatically)?
+
+4. What's your approach to preventing an automated follow-up from firing after a human has manually replied in a thread?
+
+5. Rough estimate: hours for the 5 milestones above, assuming a complete spec.
+
+Thank you!
+
+Less than 30 hrs/week
+Hourly
+1 to 3 months
+Duration
+Expert
+I am willing to pay higher rates for the most experienced freelancers
+$30.00
+
+-
+
+$60.00
+
+Hourly
+Attachment
+ final build workflow.png (520 KB)
+Project Type: Ongoing project
+Skills and Expertise
+Mandatory skills
+n8n
+Make.com
+Automation
+API Integration
+Notion
+Shopify
+gmail api
+AI Agent Development
+
+# Job 6.
+
+Build an n8n + Twilio Automation for Lead Capture, CRM Sync, and SMS Workflow
+Posted 5 hours ago
+Worldwide
+
+Summary
+I’m looking for an experienced automation specialist to build a workflow using n8n and Twilio that automates how new leads are captured, organized, and contacted.
+
+The goal is to create a reliable automation system that reduces manual work and ensures every new lead receives a timely SMS response and is logged into our CRM/database.
+
+What I need
+
+- Build an automation workflow in n8n
+- Connect Twilio for automated SMS messaging
+- Capture leads from a form, spreadsheet, or webhook
+- Send an instant SMS confirmation or follow-up message
+- Store lead information in a CRM, Google Sheets, Airtable, or another database
+- Create basic branching logic (e.g., different messages based on lead type)
+- Add error handling and logging
+- Provide documentation or a short walkthrough of the workflow
+
+Required skills
+
+- Strong experience with n8n
+- Experience integrating Twilio SMS APIs
+- API integrations and webhooks
+- CRM integrations (HubSpot, GoHighLevel, Airtable, Google Sheets, etc.)
+- Automation workflow design and troubleshooting
+
+Deliverables
+
+- Fully working n8n workflow
+- Twilio integration configured and tested
+- Documentation or video walkthrough
+- Ability to make minor revisions after testing
+
+Please send examples of similar automation projects you’ve built, especially involving n8n, Twilio, WhatsApp, SMS, CRM automation, or lead generation workflows.
+
+$10.00
+
+Fixed-price
+Expert
+I am willing to pay higher rates for the most experienced freelancers
+Contract-to-hire opportunity
+This lets talent know that this job could become full time.
+Learn more
+Project Type: One-time project
+Skills and Expertise
+Mandatory skills
+Customer Relationship Management
+Twilio API
+Automation
+Salesforce CRM
+Zapier
+API
+API Integration
+SMS
+Zoho CRM
+PHP
+
+
+# Job 7.
+
+AI Workflow Development on Reliance or N8N
+Posted 2 quarters ago
+Worldwide
+
+Summary
+We are seeking a skilled freelancer to develop an AI workflow using either Reliance or N8N. The ideal candidate should have experience in creating automated workflows.
+
+This specific workflow is going to search for doctors who work at specific hospitals and arrange them by their medical specialty. It will also search for their secretary or contact information, any research interests which they have, where they work privately and their LinkedIn profile.
+
+$100.00
+
+Fixed-price
+Apr 15, 2026
+Delivery by
+Intermediate
+I am looking for a mix of experience and value
+Project Type:Ongoing project
+You will be asked to answer the following questions when submitting a proposal:
+
+Would you use any N8N or Reliance for this?
+Can you give examples of other workflows you've created?
+Skills and Expertise
+Mandatory skills
+Artificial Intelligence
+Adobe Illustrator
+Python
+API
+JavaScript
+
+
+# Job 8.
+
+AI WA Messaging Automation for Cleaning Business
+Posted 5 hours ago
+Worldwide
+
+Summary
+I'm looking for an automation expert to streamline communication between my clients and cleaners.
+
+Current process:
+
+* Clients send me WA messages and photos of cleaning issues or requests.
+* I manually rewrite the message and forward it to the correct cleaner.
+
+What I need:
+
+* Capture incoming WA messages and photos.
+* Identify the client or property.
+* Use AI to rewrite the message as if it's from me.
+* Automatically send the rewritten message and photos to the assigned cleaner.
+* Maintain a simple client/property-to-cleaner mapping (Google Sheets is fine).
+* Ideally include an approval option before messages are sent, with the ability to make routine issues fully automatic later.
+
+Please include in your proposal:
+
+* Your experience with AI-powered messaging automations using Make, n8n, Zapier, or similar platforms.
+* Examples of similar automations you've built.
+* Your recommended solution, estimated timeframe, and total cost.
+
+I'm looking for a reliable, scalable solution that requires minimal ongoing maintenance.
+
+$100.00
+
+Fixed-price
+Expert
+I am willing to pay higher rates for the most experienced freelancers
+Project Type: One-time project
+Skills and Expertise
+Mandatory skills
+Automation
+Data Extraction
+Task Automation
+
+
+# Job 9.
+
+Build simple n8n workflow to sync form submissions to Google Sheets
+Posted 6 hours ago
+Worldwide
+
+Summary
+I need a simple automation that captures incoming emails and logs them into a Google Sheet automatically.
+
+What I need:
+- When a new email arrives (from a specific sender / with a specific subject), the automation should extract key fields and add them as a new row in a Google Sheet.
+- Fields to capture: sender name, sender email, subject, date received, and the message body (or specific values parsed from the body).
+- Should run automatically without manual triggering.
+
+Preferred tools: Zapier, Make.com, or n8n. Open to your recommendation if you have a cleaner approach.
+
+Scope is small and well-defined, this is one workflow. Please share:
+- A short note on how you'd build this and which tool you'd use.
+- Roughly how long it would take.
+- Any similar automations you've built before.
+
+Looking for clear communication and someone who can hand this off cleanly so I can maintain it myself later.
+
+$10.00
+
+Fixed-price
+Intermediate
+I am looking for a mix of experience and value
+Contract-to-hire opportunity
+This lets talent know that this job could become full time.
+Learn more
+Project Type: One-time project
+Skills and Expertise
+Mandatory skills
+Automation
+n8n
+Google Sheets
+
+
+# Job 10.
+
+n8n Automation Developer | AI Agents
+Posted yesterday
+Worldwide
+
+Summary
+We are seeking an experienced n8n Automation Developer to enhance our CRM system with AI-driven automation. The role involves integrating OpenAI GPT-4 to improve customer interactions and automate workflows. The ideal candidate will have a strong background in CRM systems and experience with AI tools. Responsibilities include designing and implementing automation workflows, integrating AI agents, and optimizing system performance.
+
+$5.00
+
+Fixed-price
+Intermediate
+I am looking for a mix of experience and value
+Project Type: Ongoing project
+Skills and Expertise
+Mandatory skills
+JavaScript
+HTML5
+Nice-to-have skills
+HTML
+Twilio API
