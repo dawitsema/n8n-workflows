@@ -1,0 +1,1991 @@
+{
+    "nodes": [
+        {
+            "parameters": {
+                "jsCode": "const raw = $input.first().json;\nconst formResponse = raw.body.form_response;\nconst answers = formResponse.answers || [];\nconst hidden = formResponse.hidden || {};\nconst definition = formResponse.definition || {};\nconst fieldsDef = definition.fields || [];\n\n// Helper to look up answer by field ref\nconst byRef = (ref) => answers.find(x => x.field && x.field.ref === ref);\n\n// Build map of field ref / id to question title\nconst fieldTitleMap = {};\nfieldsDef.forEach(f => {\n  if (f.ref) fieldTitleMap[f.ref] = f.title;\n  if (f.id) fieldTitleMap[f.id] = f.title;\n});\n\n// Helper to extract formatted answer value regardless of field type\nfunction getAnswerValue(ans) {\n  if (!ans) return '';\n  switch (ans.type) {\n    case 'choice':\n      return ans.choice?.label || '';\n    case 'choices':\n      return ans.choices?.labels ? ans.choices.labels.join(', ') : '';\n    case 'text':\n      return ans.text || '';\n    case 'email':\n      return ans.email || '';\n    case 'phone_number':\n      return ans.phone_number || '';\n    case 'boolean':\n      return ans.boolean !== undefined ? (ans.boolean ? 'Yes' : 'No') : '';\n    case 'url':\n      return ans.url || '';\n    case 'number':\n      return ans.number !== undefined ? String(ans.number) : '';\n    case 'date':\n      return ans.date || '';\n    default:\n      return ans.text || ans.choice?.label || ans.email || ans.phone_number || ans.url || '';\n  }\n}\n\n// \u2500\u2500\u2500 Extract Specific Field Values \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n// Question field refs (verified against definition and pinned payload)\nconst experience      = byRef('9b61d211-b814-42e7-b2e3-2a3bb7aa0888')?.choice?.label || '';\nconst challenge       = byRef('335bbaef-fd03-4c97-9e04-3c25e1bcce55')?.choice?.label || '';\nconst coachingRaw     = byRef('8e3e533d-9633-44fb-b343-99b70596bb65');\nconst coaching        = coachingRaw ? getAnswerValue(coachingRaw) : '';\nconst firstName       = byRef('5293aeb0-c2dc-4811-9857-8b6199ce60f3')?.text || '';\nconst lastName        = byRef('4900de89-ce90-4d66-bf30-9985524bb349')?.text || '';\n\n// Phone number: check new ref ('d7b5ac66-dfc4-4a1e-ac58-bb0a02783386') & legacy ref ('477d3c22-0496-4aa7-9649-a60e3e0f9cb5')\nconst phoneAns        = byRef('d7b5ac66-dfc4-4a1e-ac58-bb0a02783386') || byRef('477d3c22-0496-4aa7-9649-a60e3e0f9cb5');\nconst phoneRaw        = phoneAns ? (phoneAns.phone_number || phoneAns.text || '') : '';\n\nconst emailRaw        = byRef('52751782-6287-4a0e-b66e-4e8698823695')?.email || '';\nconst budget          = byRef('37de86ae-3f71-4f01-b429-72e34f95ad9e')?.choice?.label || '';\n\nconst motivationRaw   = byRef('774f7da2-4717-4efd-a10f-b7bc575ffc74');\nconst motivation      = motivationRaw ? getAnswerValue(motivationRaw) : '';\n\nconst confirmRaw      = byRef('df0591f9-f1b1-4b60-ad50-3599a0554a97');\nconst commitment      = confirmRaw ? getAnswerValue(confirmRaw) : '';\n\nconst calendlyAns     = byRef('c3a60437-0262-46a9-a678-93498570fe3a');\nconst calendlyUrl     = calendlyAns ? getAnswerValue(calendlyAns) : '';\n\n// \u2500\u2500\u2500 Phone Normalisation \u2192 E.164 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nconst DEFAULT_COUNTRY_CODE = '44'; // UK\n\nfunction toE164(input) {\n  if (!input) return '';\n  let p = input.replace(/[^\\d+]/g, '');\n  if (p.startsWith('00')) p = '+' + p.slice(2);\n  if (p.startsWith('+')) return p;\n  if (p.startsWith('0')) return '+' + DEFAULT_COUNTRY_CODE + p.slice(1);\n  return '+' + DEFAULT_COUNTRY_CODE + p;\n}\n\nconst phone = toE164(phoneRaw.trim());\nconst email = emailRaw.trim().toLowerCase();\n\n// UTM hidden fields\nconst utmSource   = hidden.utm_source   || '';\nconst utmMedium   = hidden.utm_medium   || '';\nconst utmCampaign = hidden.utm_campaign || '';\n\n// Metadata\nconst isFull  = raw.body.event_type !== 'form_response_partial';\nconst token   = formResponse.token || '';\nconst formId  = formResponse.form_id || '';\nconst landedAt    = formResponse.landed_at || '';\nconst submittedAt = formResponse.submitted_at || '';\nconst responseUrl = formResponse.response_url || '';\nconst now     = new Date().toISOString().replace('T', ' ').substring(0, 19);\n\n// \u2500\u2500\u2500 Construct Full Typeform Q&A Notes \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nconst qaList = [];\nanswers.forEach(ans => {\n  const ref = ans.field?.ref;\n  const id = ans.field?.id;\n  const title = fieldTitleMap[ref] || fieldTitleMap[id] || 'Question';\n  const val = getAnswerValue(ans);\n  if (val !== '') {\n    qaList.push(`\u2022 ${title}\\n  Answer: ${val}`);\n  }\n});\nconst typeformNotes = qaList.length > 0\n  ? `\ud83d\udcdd Typeform Submission Answers:\\n\\n${qaList.join('\\n\\n')}`\n  : 'No Typeform answers recorded.';\n\nreturn [{ json: {\n  'Email':                  email,\n  'First Name':             firstName,\n  'Last Name':              lastName,\n  'Full Name':              `${firstName} ${lastName}`.trim(),\n  'Phone':                  phone,\n  'Experience':             experience,\n  'Biggest Challenge':      challenge,\n  'Invested in Coaching':   coaching,\n  'Budget Answer':          budget,\n  'Motivation':             motivation,\n  'Commitment Confirmation': commitment,\n  'Calendly URL':           calendlyUrl,\n  'UTM Source':             utmSource,\n  'UTM Medium':             utmMedium,\n  'UTM Campaign':           utmCampaign,\n  'Typeform Token':         token,\n  'Form ID':                formId,\n  'Response URL':           responseUrl,\n  'Landed At':              landedAt,\n  'Submitted At':           submittedAt,\n  'Partial Received At':    isFull ? '' : now,\n  'Full Received At':       isFull ? now : '',\n  'isFull':                 isFull,\n  'Typeform Notes':         typeformNotes,\n  'All Answers Raw':        JSON.stringify(answers)\n} }];"
+            },
+            "id": "10174c22-229c-4d44-bde0-2759bdeb9c15",
+            "name": "Extract Fields",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -448,
+                96
+            ],
+            "notes": "UPDATE: Replace budget_question and goal_question with your actual Typeform field refs"
+        },
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "typeform-Property-Hussle-Applciation-new-ad",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2.1,
+            "position": [
+                -672,
+                96
+            ],
+            "id": "c8b19407-2025-4b4e-8207-62fefeb6daaa",
+            "name": "Webhook",
+            "webhookId": "9101bd3b-7e95-45b8-bac6-15ca300cc656"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "b5fc662e-9163-4072-b0fd-fb0607ee942b",
+                            "leftValue": "={{ $('Extract Fields').item.json.isFull }}",
+                            "rightValue": "",
+                            "operator": {
+                                "type": "boolean",
+                                "operation": "true",
+                                "singleValue": true
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                -224,
+                96
+            ],
+            "id": "391be56b-2607-4b93-bc27-473cbe6d18ad",
+            "name": "Full Submission?"
+        },
+        {
+            "parameters": {
+                "operation": "append",
+                "documentId": {
+                    "__rl": true,
+                    "value": "1OJ-xnH3dio_zXnhNVJAZx_cL-i3Y1BP7BF4wKU7GUGI",
+                    "mode": "list",
+                    "cachedResultName": "Property Hussle Applciation Automation",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1OJ-xnH3dio_zXnhNVJAZx_cL-i3Y1BP7BF4wKU7GUGI/edit?usp=drivesdk"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": 1858725094,
+                    "mode": "list",
+                    "cachedResultName": "Typeform",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1OJ-xnH3dio_zXnhNVJAZx_cL-i3Y1BP7BF4wKU7GUGI/edit#gid=1858725094"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "Timestanp ": "={{ $('Extract Fields').item.json['Submitted At'] }}",
+                        "Lead Name": "={{ $('Extract Fields').item.json['Full Name'] }}",
+                        "Lead Phone Number": "={{ $('Extract Fields').item.json.Phone }}",
+                        "Lead Email": "={{ $('Extract Fields').item.json.Email }}",
+                        "Lead Source": "={{ $('Extract Fields').item.json['UTM Source'] || \"typeform\" }}",
+                        "Lead Medium": "={{ $('Extract Fields').item.json['UTM Medium'] }}",
+                        "Lead Campagin": "={{ $('Extract Fields').item.json['UTM Campaign'] }}",
+                        "Which of these best describes your property experience?": "={{ $('Extract Fields').item.json.Experience }}",
+                        "What's Your Biggest Challenge With Your Property Business Right Now?": "={{ $('Extract Fields').item.json['Biggest Challenge'] }}",
+                        "What total budget do you currently have, to invest into starting or scaling your property business?": "={{ $('Extract Fields').item.json['Budget Answer'] }}"
+                    },
+                    "matchingColumns": [],
+                    "schema": [
+                        {
+                            "id": "Timestanp ",
+                            "displayName": "Timestanp ",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Lead Name",
+                            "displayName": "Lead Name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Lead Phone Number",
+                            "displayName": "Lead Phone Number",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Lead Email",
+                            "displayName": "Lead Email",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Lead Source",
+                            "displayName": "Lead Source",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Lead Medium",
+                            "displayName": "Lead Medium",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Lead Campagin",
+                            "displayName": "Lead Campagin",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Which of these best describes your property experience?",
+                            "displayName": "Which of these best describes your property experience?",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "What's Your Biggest Challenge With Your Property Business Right Now?",
+                            "displayName": "What's Your Biggest Challenge With Your Property Business Right Now?",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "What total budget do you currently have, to invest into starting or scaling your property business?",
+                            "displayName": "What total budget do you currently have, to invest into starting or scaling your property business?",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false
+                },
+                "options": {}
+            },
+            "id": "89e73c7a-feb6-4d33-bd0d-0d9cf136941d",
+            "name": "Google Sheets \u2013 Add Row (Full)",
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.5,
+            "position": [
+                224,
+                0
+            ],
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "cVoR6CgHHfdq9ps5",
+                    "name": "Google Sheets account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://slack.com/api/chat.postMessage",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json; charset=utf-8"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify({\n  channel: 'C0A6AQEP3QE',\n  text: '\ud83d\udfe2 New FULL Application from ' + ($('Extract Fields').item.json['Full Name'] || 'Unknown'),\n  blocks: [\n    { type: 'section', text: { type: 'mrkdwn', text: '\ud83d\udfe2 *New FULL Application* from *' + ($('Extract Fields').item.json['Full Name'] || 'Unknown') + '*' } },\n    { type: 'section', fields: [\n        { type: 'mrkdwn', text: '*Name*\\n' + ($('Extract Fields').item.json['Full Name'] || 'N/A') },\n        { type: 'mrkdwn', text: '*Email*\\n' + ($('Extract Fields').item.json.Email || 'N/A') },\n        { type: 'mrkdwn', text: '*Phone*\\n' + ($('Extract Fields').item.json.Phone || 'N/A') },\n        { type: 'mrkdwn', text: '*Experience*\\n' + ($('Extract Fields').item.json.Experience || 'N/A') },\n        { type: 'mrkdwn', text: '*Challenge*\\n' + ($('Extract Fields').item.json['Biggest Challenge'] || 'N/A') },\n        { type: 'mrkdwn', text: '*Invested in Coaching*\\n' + ($('Extract Fields').item.json['Invested in Coaching'] || 'N/A') },\n        { type: 'mrkdwn', text: '*Budget*\\n' + ($('Extract Fields').item.json['Budget Answer'] || 'N/A') },\n        { type: 'mrkdwn', text: '*Motivation*\\n' + ($('Extract Fields').item.json.Motivation || 'N/A') }\n    ]},\n    { type: 'section', fields: [\n        { type: 'mrkdwn', text: '*Calendly*\\n' + ($('Extract Fields').item.json['Calendly URL'] || '_Not booked_') },\n        { type: 'mrkdwn', text: '*UTM*\\n' + ($('Extract Fields').item.json['UTM Source'] || '-') + ' / ' + ($('Extract Fields').item.json['UTM Medium'] || '-') + ' / ' + ($('Extract Fields').item.json['UTM Campaign'] || '-') }\n    ]},\n    { type: 'divider' },\n    { type: 'actions', elements: [\n        {\n          type: 'button',\n          text: { type: 'plain_text', text: 'View in Close' },\n          style: 'primary',\n          url: 'https://app.close.com/lead/' + $('Close \u2013 Create Lead (Full)').item.json.id + '/',\n          action_id: 'view_close_full'\n        }\n    ]}\n  ]\n}) }}",
+                "options": {},
+                "authentication": "predefinedCredentialType",
+                "nodeCredentialType": "slackApi"
+            },
+            "id": "82bae0a7-b5ec-4fde-9620-5d2a3ff85b5f",
+            "name": "Slack \u2013 Full Alert",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                448,
+                0
+            ],
+            "credentials": {
+                "slackApi": {
+                    "id": "8bZIBpiUegrMppJK",
+                    "name": "Slack account 2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "amount": 5,
+                "unit": "minutes"
+            },
+            "id": "8897ddf3-5f37-4021-ba9d-39d6218cf85f",
+            "name": "Wait 5 Minutes",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1,
+            "position": [
+                0,
+                192
+            ],
+            "webhookId": "192ed4a1-5f2f-4ac1-aa72-e76704b064ac",
+            "notes": "Gives the full submission time to arrive and be processed in GHL before we check"
+        },
+        {
+            "parameters": {
+                "operation": "select",
+                "schema": {
+                    "__rl": true,
+                    "value": "public",
+                    "mode": "list",
+                    "cachedResultName": "public"
+                },
+                "table": {
+                    "__rl": true,
+                    "value": "leads",
+                    "mode": "list",
+                    "cachedResultName": "leads"
+                },
+                "limit": 1,
+                "where": {
+                    "values": [
+                        {
+                            "column": "email",
+                            "value": "={{ $('Extract Fields').item.json.Email }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "8f9fd7ca-3c8e-400d-8038-171996d9737e",
+            "name": "Postgres \u2013 Search Email",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.6,
+            "position": [
+                224,
+                192
+            ],
+            "alwaysOutputData": true,
+            "credentials": {
+                "postgres": {
+                    "id": "vHzmmnuirqKCSruC",
+                    "name": "Postgres account"
+                }
+            },
+            "notes": "Search Postgres for a full submission with this email \u2014 faster and more reliable than GHL API"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "check-full-tag",
+                            "leftValue": "={{ $json.id !== undefined && $json.id !== null }}",
+                            "rightValue": true,
+                            "operator": {
+                                "type": "boolean",
+                                "operation": "true",
+                                "singleValue": true
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                448,
+                192
+            ],
+            "id": "b46ea104-f205-42b6-abf7-49d74693e6cd",
+            "name": "Full Already in GHL?",
+            "notes": "TRUE (output 0) = full submission found in Postgres \u2192 STOP, do nothing. FALSE (output 1) = not found \u2192 process as partial."
+        },
+        {
+            "parameters": {
+                "operation": "append",
+                "documentId": {
+                    "__rl": true,
+                    "value": "1OJ-xnH3dio_zXnhNVJAZx_cL-i3Y1BP7BF4wKU7GUGI",
+                    "mode": "list",
+                    "cachedResultName": "Property Hussle Applciation Automation",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1OJ-xnH3dio_zXnhNVJAZx_cL-i3Y1BP7BF4wKU7GUGI/edit?usp=drivesdk"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": 1858725094,
+                    "mode": "list",
+                    "cachedResultName": "Typeform"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "Timestanp ": "={{ $('Extract Fields').item.json['Partial Received At'] || $('Extract Fields').item.json['Landed At'] || $('Extract Fields').item.json['Submitted At'] }}",
+                        "Lead Name": "={{ $('Extract Fields').item.json['Full Name'] }}",
+                        "Lead Phone Number": "={{ $('Extract Fields').item.json.Phone }}",
+                        "Lead Email": "={{ $('Extract Fields').item.json.Email }}",
+                        "Lead Source": "={{ $('Extract Fields').item.json['UTM Source'] || 'typeform' }}",
+                        "Lead Medium": "={{ $('Extract Fields').item.json['UTM Medium'] }}",
+                        "Lead Campagin": "={{ $('Extract Fields').item.json['UTM Campaign'] }}",
+                        "Which of these best describes your property experience?": "={{ $('Extract Fields').item.json.Experience }}",
+                        "What's Your Biggest Challenge With Your Property Business Right Now?": "={{ $('Extract Fields').item.json['Biggest Challenge'] }}",
+                        "What total budget do you currently have, to invest into starting or scaling your property business?": "={{ $('Extract Fields').item.json['Budget Answer'] }}"
+                    },
+                    "matchingColumns": [],
+                    "schema": [
+                        {
+                            "id": "Timestanp ",
+                            "displayName": "Timestanp ",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Lead Name",
+                            "displayName": "Lead Name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Lead Phone Number",
+                            "displayName": "Lead Phone Number",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Lead Email",
+                            "displayName": "Lead Email",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Lead Source",
+                            "displayName": "Lead Source",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Lead Medium",
+                            "displayName": "Lead Medium",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Lead Campagin",
+                            "displayName": "Lead Campagin",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Which of these best describes your property experience?",
+                            "displayName": "Which of these best describes your property experience?",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "What's Your Biggest Challenge With Your Property Business Right Now?",
+                            "displayName": "What's Your Biggest Challenge With Your Property Business Right Now?",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "What total budget do you currently have, to invest into starting or scaling your property business?",
+                            "displayName": "What total budget do you currently have, to invest into starting or scaling your property business?",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false
+                },
+                "options": {}
+            },
+            "id": "df55752a-c47a-483b-a1cc-85c0ae358b31",
+            "name": "Google Sheets \u2013 Add Row (Partial)",
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.5,
+            "position": [
+                896,
+                192
+            ],
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "cVoR6CgHHfdq9ps5",
+                    "name": "Google Sheets account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://slack.com/api/chat.postMessage",
+                "authentication": "predefinedCredentialType",
+                "nodeCredentialType": "slackApi",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json; charset=utf-8"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify({\n  channel: 'C0A6AQEP3QE',\n  text: '\ud83d\udfe1 New PARTIAL Application from ' + ($('Extract Fields').item.json['Full Name'] || 'Unknown'),\n  blocks: [\n    { type: 'section', text: { type: 'mrkdwn', text: '\ud83d\udfe1 *New PARTIAL Application* from *' + ($('Extract Fields').item.json['Full Name'] || 'Unknown') + '*' } },\n    { type: 'section', fields: [\n        { type: 'mrkdwn', text: '*Name*\\n' + ($('Extract Fields').item.json['Full Name'] || 'N/A') },\n        { type: 'mrkdwn', text: '*Email*\\n' + ($('Extract Fields').item.json.Email || 'N/A') },\n        { type: 'mrkdwn', text: '*Phone*\\n' + ($('Extract Fields').item.json.Phone || 'N/A') },\n        { type: 'mrkdwn', text: '*Experience*\\n' + ($('Extract Fields').item.json.Experience || 'N/A') },\n        { type: 'mrkdwn', text: '*Challenge*\\n' + ($('Extract Fields').item.json['Biggest Challenge'] || 'N/A') },\n        { type: 'mrkdwn', text: '*Invested in Coaching*\\n' + ($('Extract Fields').item.json['Invested in Coaching'] || 'N/A') },\n        { type: 'mrkdwn', text: '*Motivation*\\n' + ($('Extract Fields').item.json.Motivation || 'N/A') }\n    ]},\n    { type: 'section', fields: [\n        { type: 'mrkdwn', text: '*Typeform*\\n' + ($('Extract Fields').item.json['Response URL'] || '_N/A_') },\n        { type: 'mrkdwn', text: '*UTM*\\n' + ($('Extract Fields').item.json['UTM Source'] || '-') + ' / ' + ($('Extract Fields').item.json['UTM Medium'] || '-') + ' / ' + ($('Extract Fields').item.json['UTM Campaign'] || '-') }\n    ]},\n    { type: 'divider' },\n    { type: 'actions', elements: [\n        {\n          type: 'button',\n          text: { type: 'plain_text', text: 'View in Close' },\n          style: 'danger',\n          url: 'https://app.close.com/lead/' + $('Close \u2013 Create Lead (Partial)').item.json.id + '/',\n          action_id: 'view_close_partial'\n        }\n    ]}\n  ]\n}) }}",
+                "options": {}
+            },
+            "id": "1c9ce97b-0e67-409d-8593-dba57f9add53",
+            "name": "Slack \u2013 Partial Alert",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1120,
+                192
+            ],
+            "credentials": {
+                "slackApi": {
+                    "id": "8bZIBpiUegrMppJK",
+                    "name": "Slack account 2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.close.com/api/v1/lead/",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpBasicAuth",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"name\": \"{{ $('Extract Fields').item.json['Full Name'] }}\",\n  \"status_id\": \"stat_3jTqMuQpJ9YoZXlehFIFkY3JvzsOEkZ79kji5OI6ytD\",\n  \"contacts\": [\n    {\n      \"name\": \"{{ $('Extract Fields').item.json['Full Name'] }}\",\n      \"emails\": [{\"email\": \"{{ $('Extract Fields').item.json['Email'] }}\", \"type\": \"office\"}],\n      \"phones\": [{\"phone\": \"{{ $('Extract Fields').item.json['Phone'] }}\", \"type\": \"office\"}]\n    }\n  ],\n  \"custom.cf_MygAy9FDGt7SYWekKpL9fE5D7tHyNJSjUSpHMT5kYKj\": \"Paid Ads\",\n  \"custom.cf_fYSb69ijBKXH1U7HaKGKzig09xx31VSi5fB1ytGcxkE\": \"{{ $('Extract Fields').item.json['Budget Answer'] }}\",\n  \"custom.cf_U8z7cJpmwe8h9RUlacTUpXOYgaJEN50Bh58nyw0aBR3\": \"{{ $('Extract Fields').item.json['Biggest Challenge'] }}\",\n  \"custom.cf_7mkVyl8xs6oGUp0duQimZAq2yGbfsVrE8vvlKqIxJb2\": \"{{ $('Extract Fields').item.json['Experience'] || \"N/A\" }}\",\n  \"custom.cf_I03NYgG4XNYlWTSqYTwkiFIhwsivvpXWRAgtpzBGjLD\": \"{{ $('Extract Fields').item.json['UTM Source'] || \"N/A\" }}\",\n  \"custom.cf_Hp1RHtd36PRN8wamYSB4sfT5I1aKqzOEEaLfzACW5Bw\": \"{{ $('Extract Fields').item.json['UTM Campaign'] || \"N/A\" }}\",\n  \"custom.cf_iLBkPotsLtpsCXSMnFvBV9fgBuuxVZHM1PeROwBH4oc\": \"{{ $('Extract Fields').item.json['UTM Medium'] || \"N/A\" }}\"\n}\n",
+                "options": {}
+            },
+            "id": "c67c02e4-b996-4b01-8a9f-17b7b8cfdbe5",
+            "name": "Close \u2013 Create Lead (Full)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                0,
+                0
+            ],
+            "credentials": {
+                "httpBasicAuth": {
+                    "id": "dJmQ0AFSNKMEj05l",
+                    "name": "Close CRM"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.close.com/api/v1/lead/",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpBasicAuth",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"name\": \"{{ $('Extract Fields').item.json['Full Name'] }}\",\n  \"status_id\": \"stat_3jTqMuQpJ9YoZXlehFIFkY3JvzsOEkZ79kji5OI6ytD\",\n  \"contacts\": [\n    {\n      \"name\": \"{{ $('Extract Fields').item.json['Full Name'] }}\",\n      \"emails\": [{\"email\": \"{{ $('Extract Fields').item.json['Email'] }}\", \"type\": \"office\"}],\n      \"phones\": [{\"phone\": \"{{ $('Extract Fields').item.json['Phone'] }}\", \"type\": \"office\"}]\n    }\n  ],\n  \"custom.cf_MygAy9FDGt7SYWekKpL9fE5D7tHyNJSjUSpHMT5kYKj\": \"Paid Ads\",\n  \"custom.cf_U8z7cJpmwe8h9RUlacTUpXOYgaJEN50Bh58nyw0aBR3\": \"{{ $('Extract Fields').item.json['Biggest Challenge'] || \"N/A\" }}\",\n  \"custom.cf_7mkVyl8xs6oGUp0duQimZAq2yGbfsVrE8vvlKqIxJb2\": \"{{ $('Extract Fields').item.json['Experience'] || \"N/A\" }}\",\n  \"custom.cf_I03NYgG4XNYlWTSqYTwkiFIhwsivvpXWRAgtpzBGjLD\": \"{{ $('Extract Fields').item.json['UTM Source'] || \"N/A\" }}\",\n  \"custom.cf_Hp1RHtd36PRN8wamYSB4sfT5I1aKqzOEEaLfzACW5Bw\": \"{{ $('Extract Fields').item.json['UTM Campaign'] || \"N/A\" }}\",\n  \"custom.cf_iLBkPotsLtpsCXSMnFvBV9fgBuuxVZHM1PeROwBH4oc\": \"{{ $('Extract Fields').item.json['UTM Medium'] || \"N/A\"}}\"\n}\n",
+                "options": {}
+            },
+            "id": "ae634167-1407-4014-ad0b-5c4c64bd2c99",
+            "name": "Close \u2013 Create Lead (Partial)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                672,
+                192
+            ],
+            "credentials": {
+                "httpBasicAuth": {
+                    "id": "dJmQ0AFSNKMEj05l",
+                    "name": "Close CRM"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "schema": {
+                    "__rl": true,
+                    "value": "public",
+                    "mode": "list",
+                    "cachedResultName": "public"
+                },
+                "table": {
+                    "__rl": true,
+                    "value": "leads",
+                    "mode": "list",
+                    "cachedResultName": "leads"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "email": "={{ $('Extract Fields').item.json.Email }}",
+                        "phone": "={{ $('Extract Fields').item.json.Phone }}",
+                        "name": "={{ $('Extract Fields').item.json['Full Name'] }}",
+                        "budget": "={{ $('Extract Fields').item.json['Budget Answer'] }}",
+                        "funnel_type": "dm",
+                        "lead_source": "={{ $('Webhook').item.json.body.form_response.definition.title }}",
+                        "utm_campaign": "={{ $('Extract Fields').item.json['UTM Campaign'] }}",
+                        "utm_medium": "={{ $('Extract Fields').item.json['UTM Medium'] }}",
+                        "utm_source": "={{ $('Extract Fields').item.json['UTM Source'] }}",
+                        "experience": "={{ $('Extract Fields').item.json.Experience }}",
+                        "challenge": "={{ $('Extract Fields').item.json['Biggest Challenge'] }}",
+                        "created_at": "={{ $('Extract Fields').item.json['Submitted At'] }}",
+                        "ghl_contact_id": "={{ $('Close \u2013 Create Lead (Partial)').item.json.id }}",
+                        "updated_at": "={{ $('Extract Fields').item.json['Submitted At'] }}",
+                        "current_status": "booked",
+                        "call_booked_at": "={{ $('Extract Fields').item.json['Full Received At'] }}",
+                        "close_crm_id": "={{ $('Close \u2013 Create Lead (Partial)').item.json.id }}"
+                    },
+                    "matchingColumns": [
+                        "id"
+                    ],
+                    "schema": [
+                        {
+                            "id": "id",
+                            "displayName": "id",
+                            "required": false,
+                            "defaultMatch": true,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": true
+                        },
+                        {
+                            "id": "email",
+                            "displayName": "email",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "phone",
+                            "displayName": "phone",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "name",
+                            "displayName": "name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "budget",
+                            "displayName": "budget",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "funnel_type",
+                            "displayName": "funnel_type",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "options",
+                            "canBeUsedToMatch": true,
+                            "options": [
+                                {
+                                    "name": "vsl",
+                                    "value": "vsl"
+                                },
+                                {
+                                    "name": "webinar",
+                                    "value": "webinar"
+                                },
+                                {
+                                    "name": "dm",
+                                    "value": "dm"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "lead_source",
+                            "displayName": "lead_source",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "utm_source",
+                            "displayName": "utm_source",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "utm_medium",
+                            "displayName": "utm_medium",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "utm_campaign",
+                            "displayName": "utm_campaign",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "utm_adset",
+                            "displayName": "utm_adset",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "utm_ad",
+                            "displayName": "utm_ad",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "closer_id",
+                            "displayName": "closer_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "setter_id",
+                            "displayName": "setter_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "current_status",
+                            "displayName": "current_status",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "options",
+                            "canBeUsedToMatch": true,
+                            "options": [
+                                {
+                                    "name": "new",
+                                    "value": "new"
+                                },
+                                {
+                                    "name": "contacted",
+                                    "value": "contacted"
+                                },
+                                {
+                                    "name": "qualified",
+                                    "value": "qualified"
+                                },
+                                {
+                                    "name": "unqualified",
+                                    "value": "unqualified"
+                                },
+                                {
+                                    "name": "no_show",
+                                    "value": "no_show"
+                                },
+                                {
+                                    "name": "canceled",
+                                    "value": "canceled"
+                                },
+                                {
+                                    "name": "rescheduled",
+                                    "value": "rescheduled"
+                                },
+                                {
+                                    "name": "follow_up",
+                                    "value": "follow_up"
+                                },
+                                {
+                                    "name": "closed_deal",
+                                    "value": "closed_deal"
+                                },
+                                {
+                                    "name": "booked",
+                                    "value": "booked"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "calendly_event_id",
+                            "displayName": "calendly_event_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "close_crm_id",
+                            "displayName": "close_crm_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "typeform_response_id",
+                            "displayName": "typeform_response_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "call_booked_at",
+                            "displayName": "call_booked_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "call_taken_at",
+                            "displayName": "call_taken_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "webinar_date",
+                            "displayName": "webinar_date",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "webinar_name",
+                            "displayName": "webinar_name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": true
+                        },
+                        {
+                            "id": "webinar_attended_at",
+                            "displayName": "webinar_attended_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "webinar_registered_at",
+                            "displayName": "webinar_registered_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "created_at",
+                            "displayName": "created_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "updated_at",
+                            "displayName": "updated_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "challenge",
+                            "displayName": "challenge",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "goal",
+                            "displayName": "goal",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": true
+                        },
+                        {
+                            "id": "experience",
+                            "displayName": "experience",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "ghl_contact_id",
+                            "displayName": "ghl_contact_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "instagram",
+                            "displayName": "instagram",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": true
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.6,
+            "position": [
+                1344,
+                192
+            ],
+            "id": "931a45f2-c7f1-4c81-8f87-bd0486d428aa",
+            "name": "Insert rows in a table(Partial)",
+            "credentials": {
+                "postgres": {
+                    "id": "vHzmmnuirqKCSruC",
+                    "name": "Postgres account"
+                }
+            },
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "schema": {
+                    "__rl": true,
+                    "value": "public",
+                    "mode": "list",
+                    "cachedResultName": "public"
+                },
+                "table": {
+                    "__rl": true,
+                    "value": "leads",
+                    "mode": "list",
+                    "cachedResultName": "leads"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "email": "={{ $('Extract Fields').item.json.Email }}",
+                        "phone": "={{ $('Extract Fields').item.json.Phone }}",
+                        "name": "={{ $('Extract Fields').item.json['Full Name'] }}",
+                        "budget": "={{ $('Extract Fields').item.json['Budget Answer'] }}",
+                        "funnel_type": "dm",
+                        "lead_source": "={{ $('Webhook').item.json.body.form_response.definition.title }}",
+                        "utm_campaign": "={{ $('Extract Fields').item.json['UTM Campaign'] }}",
+                        "utm_medium": "={{ $('Extract Fields').item.json['UTM Medium'] }}",
+                        "utm_source": "={{ $('Extract Fields').item.json['UTM Source'] }}",
+                        "experience": "={{ $('Extract Fields').item.json.Experience }}",
+                        "challenge": "={{ $('Extract Fields').item.json['Biggest Challenge'] }}",
+                        "created_at": "={{ $('Extract Fields').item.json['Submitted At'] }}",
+                        "ghl_contact_id": "={{ $('Close \u2013 Create Lead (Full)').item.json.id }}",
+                        "updated_at": "={{ $('Extract Fields').item.json['Submitted At'] }}",
+                        "current_status": "booked",
+                        "call_booked_at": "={{ $('Extract Fields').item.json['Full Received At'] }}",
+                        "close_crm_id": "={{ $('Close \u2013 Create Lead (Full)').item.json.id }}"
+                    },
+                    "matchingColumns": [
+                        "id"
+                    ],
+                    "schema": [
+                        {
+                            "id": "id",
+                            "displayName": "id",
+                            "required": false,
+                            "defaultMatch": true,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": true
+                        },
+                        {
+                            "id": "email",
+                            "displayName": "email",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "phone",
+                            "displayName": "phone",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "name",
+                            "displayName": "name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "budget",
+                            "displayName": "budget",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "funnel_type",
+                            "displayName": "funnel_type",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "options",
+                            "canBeUsedToMatch": true,
+                            "options": [
+                                {
+                                    "name": "vsl",
+                                    "value": "vsl"
+                                },
+                                {
+                                    "name": "webinar",
+                                    "value": "webinar"
+                                },
+                                {
+                                    "name": "dm",
+                                    "value": "dm"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "lead_source",
+                            "displayName": "lead_source",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "utm_source",
+                            "displayName": "utm_source",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "utm_medium",
+                            "displayName": "utm_medium",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "utm_campaign",
+                            "displayName": "utm_campaign",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "utm_adset",
+                            "displayName": "utm_adset",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "utm_ad",
+                            "displayName": "utm_ad",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "closer_id",
+                            "displayName": "closer_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "setter_id",
+                            "displayName": "setter_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "current_status",
+                            "displayName": "current_status",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "options",
+                            "canBeUsedToMatch": true,
+                            "options": [
+                                {
+                                    "name": "new",
+                                    "value": "new"
+                                },
+                                {
+                                    "name": "contacted",
+                                    "value": "contacted"
+                                },
+                                {
+                                    "name": "qualified",
+                                    "value": "qualified"
+                                },
+                                {
+                                    "name": "unqualified",
+                                    "value": "unqualified"
+                                },
+                                {
+                                    "name": "no_show",
+                                    "value": "no_show"
+                                },
+                                {
+                                    "name": "canceled",
+                                    "value": "canceled"
+                                },
+                                {
+                                    "name": "rescheduled",
+                                    "value": "rescheduled"
+                                },
+                                {
+                                    "name": "follow_up",
+                                    "value": "follow_up"
+                                },
+                                {
+                                    "name": "closed_deal",
+                                    "value": "closed_deal"
+                                },
+                                {
+                                    "name": "booked",
+                                    "value": "booked"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "calendly_event_id",
+                            "displayName": "calendly_event_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "close_crm_id",
+                            "displayName": "close_crm_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "typeform_response_id",
+                            "displayName": "typeform_response_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "call_booked_at",
+                            "displayName": "call_booked_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "call_taken_at",
+                            "displayName": "call_taken_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "webinar_date",
+                            "displayName": "webinar_date",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "webinar_name",
+                            "displayName": "webinar_name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": true
+                        },
+                        {
+                            "id": "webinar_attended_at",
+                            "displayName": "webinar_attended_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "webinar_registered_at",
+                            "displayName": "webinar_registered_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "created_at",
+                            "displayName": "created_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "updated_at",
+                            "displayName": "updated_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "challenge",
+                            "displayName": "challenge",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "goal",
+                            "displayName": "goal",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": true
+                        },
+                        {
+                            "id": "experience",
+                            "displayName": "experience",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "ghl_contact_id",
+                            "displayName": "ghl_contact_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "instagram",
+                            "displayName": "instagram",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": true
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.6,
+            "position": [
+                672,
+                0
+            ],
+            "id": "e949e9d1-04b3-413d-be73-7880ea34b744",
+            "name": "Insert rows in a table(Full)",
+            "credentials": {
+                "postgres": {
+                    "id": "vHzmmnuirqKCSruC",
+                    "name": "Postgres account"
+                }
+            },
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.close.com/api/v1/activity/note/",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpBasicAuth",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify({\n  lead_id: $('Close \u2013 Create Lead (Full)').item.json.id,\n  note: $('Extract Fields').item.json['Typeform Notes']\n}) }}",
+                "options": {}
+            },
+            "id": "c7112001-9a4f-4d82-b208-e8f0011bb201",
+            "name": "Close \u2013 Add Note (Full)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                112,
+                0
+            ],
+            "credentials": {
+                "httpBasicAuth": {
+                    "id": "dJmQ0AFSNKMEj05l",
+                    "name": "Close CRM"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.close.com/api/v1/activity/note/",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpBasicAuth",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify({\n  lead_id: $('Close \u2013 Create Lead (Partial)').item.json.id,\n  note: $('Extract Fields').item.json['Typeform Notes']\n}) }}",
+                "options": {}
+            },
+            "id": "c7112002-9a4f-4d82-b208-e8f0011bb202",
+            "name": "Close \u2013 Add Note (Partial)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                784,
+                192
+            ],
+            "credentials": {
+                "httpBasicAuth": {
+                    "id": "dJmQ0AFSNKMEj05l",
+                    "name": "Close CRM"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Extract Fields": {
+            "main": [
+                [
+                    {
+                        "node": "Full Submission?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Fields",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Full Submission?": {
+            "main": [
+                [
+                    {
+                        "node": "Close \u2013 Create Lead (Full)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Wait 5 Minutes",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Google Sheets \u2013 Add Row (Full)": {
+            "main": [
+                [
+                    {
+                        "node": "Slack \u2013 Full Alert",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Slack \u2013 Full Alert": {
+            "main": [
+                [
+                    {
+                        "node": "Insert rows in a table(Full)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait 5 Minutes": {
+            "main": [
+                [
+                    {
+                        "node": "Postgres \u2013 Search Email",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Postgres \u2013 Search Email": {
+            "main": [
+                [
+                    {
+                        "node": "Full Already in GHL?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Full Already in GHL?": {
+            "main": [
+                [],
+                [
+                    {
+                        "node": "Close \u2013 Create Lead (Partial)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Google Sheets \u2013 Add Row (Partial)": {
+            "main": [
+                [
+                    {
+                        "node": "Slack \u2013 Partial Alert",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Slack \u2013 Partial Alert": {
+            "main": [
+                [
+                    {
+                        "node": "Insert rows in a table(Partial)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Close \u2013 Create Lead (Full)": {
+            "main": [
+                [
+                    {
+                        "node": "Close \u2013 Add Note (Full)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Close \u2013 Create Lead (Partial)": {
+            "main": [
+                [
+                    {
+                        "node": "Close \u2013 Add Note (Partial)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Close \u2013 Add Note (Full)": {
+            "main": [
+                [
+                    {
+                        "node": "Google Sheets \u2013 Add Row (Full)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Close \u2013 Add Note (Partial)": {
+            "main": [
+                [
+                    {
+                        "node": "Google Sheets \u2013 Add Row (Partial)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "pinData": {
+        "Webhook": [
+            {
+                "headers": {
+                    "host": "propertyhussle.app.n8n.cloud",
+                    "user-agent": "Typeform Webhooks",
+                    "content-length": "8902",
+                    "accept-encoding": "gzip, br",
+                    "cdn-loop": "cloudflare; loops=1; subreqs=1",
+                    "cf-connecting-ip": "18.210.136.162",
+                    "cf-ew-via": "15",
+                    "cf-ipcountry": "US",
+                    "cf-ray": "a25e47a6dd86e5f1-IAD",
+                    "cf-visitor": "{\"scheme\":\"https\"}",
+                    "cf-worker": "n8n.cloud",
+                    "content-type": "application/json",
+                    "traceparent": "00-050ec81593b3c3dad669656d6a18c0bd-4a6cf7f854e53a6d-01",
+                    "x-forwarded-for": "18.210.136.162, 172.71.190.93",
+                    "x-forwarded-host": "propertyhussle.app.n8n.cloud",
+                    "x-forwarded-port": "443",
+                    "x-forwarded-proto": "https",
+                    "x-forwarded-server": "traefik-prod-users-gwc-33-6548f7bf9d-2jzs6",
+                    "x-is-trusted": "yes",
+                    "x-real-ip": "18.210.136.162"
+                },
+                "params": {},
+                "query": {},
+                "body": {
+                    "event_id": "01KZ6K40G2QEY7J87BKTDR08NV",
+                    "event_type": "form_response",
+                    "form_response": {
+                        "form_id": "tUx3IYmM",
+                        "token": "3xuerokdpyxw4e3xuer55mfuu3thxda1",
+                        "response_url": "https://admin.typeform.com/form/tUx3IYmM/results?responseId=3xuerokdpyxw4e3xuer55mfuu3thxda1#responses",
+                        "landed_at": "2026-08-04T14:32:57Z",
+                        "submitted_at": "2026-08-04T14:33:54Z",
+                        "hidden": {
+                            "utm_campaign": "",
+                            "utm_medium": "",
+                            "utm_source": ""
+                        },
+                        "definition": {
+                            "id": "tUx3IYmM",
+                            "title": "Property Hussle Paid Ads (New)",
+                            "fields": [
+                                {
+                                    "id": "p0YD5HtMlbVK",
+                                    "ref": "9b61d211-b814-42e7-b2e3-2a3bb7aa0888",
+                                    "type": "multiple_choice",
+                                    "title": "Which of these best describes your property experience?",
+                                    "properties": {},
+                                    "choices": [
+                                        {
+                                            "id": "AcFcfF600ny6",
+                                            "ref": "90c7bcfd-c3e1-4b1c-a6c9-a77c55ff2b54",
+                                            "label": "Aspiring Property Entreprenuer"
+                                        },
+                                        {
+                                            "id": "aXaKVO9Wif2Y",
+                                            "ref": "75e20490-be68-4886-9edf-c7534cfb9233",
+                                            "label": "I've watched some videos / attended some networking events"
+                                        },
+                                        {
+                                            "id": "NyvfDdYvW5FH",
+                                            "ref": "c175d397-bfd8-4539-abc9-3b34e500932a",
+                                            "label": "I've started my business, but havent secured any deals"
+                                        },
+                                        {
+                                            "id": "Mw9gYcU7BkiJ",
+                                            "ref": "1284e0e5-ef64-451b-86df-85fe1e0c1678",
+                                            "label": "I've invested/purchased/sold 1-5 deals"
+                                        },
+                                        {
+                                            "id": "M2Q8133jBuMe",
+                                            "ref": "d2399eed-8de1-4431-a78f-c4f967887b58",
+                                            "label": "I've invested/purchased/sold 5+ deals"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "id": "B14BPb0K4KLL",
+                                    "ref": "335bbaef-fd03-4c97-9e04-3c25e1bcce55",
+                                    "type": "multiple_choice",
+                                    "title": "What's Your Biggest Challenge With Your Property Business Right Now?*",
+                                    "properties": {},
+                                    "choices": [
+                                        {
+                                            "id": "FRh5rH5Xmb32",
+                                            "ref": "98b719e1-9c6d-4147-8b73-03aaf00ea873",
+                                            "label": "Dont know where to start"
+                                        },
+                                        {
+                                            "id": "gIk8lRMQTS8R",
+                                            "ref": "6415a916-9a04-4b5c-998f-1d1002e9aaa5",
+                                            "label": "Lack of confidence/self belief"
+                                        },
+                                        {
+                                            "id": "oCupNqQiHjGy",
+                                            "ref": "405ed091-c309-4fcf-9b04-d752897534da",
+                                            "label": "Struggling to find deals"
+                                        },
+                                        {
+                                            "id": "8gQnh2twDh0u",
+                                            "ref": "d0425807-5688-42e7-8298-fd0e3a03beb4",
+                                            "label": "Lack of resources to fund deals"
+                                        },
+                                        {
+                                            "id": "mVoBFBAaxAAi",
+                                            "ref": "4eeadbb3-d860-4532-bb89-ca3856b71a6e",
+                                            "label": "All of the above"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "id": "Mgnj7vNSGKJi",
+                                    "ref": "8e3e533d-9633-44fb-b343-99b70596bb65",
+                                    "type": "multiple_choice",
+                                    "title": "How much have you invested in courses, coaching, or programs to grow a business?",
+                                    "properties": {},
+                                    "choices": [
+                                        {
+                                            "id": "GevJioKCXSgJ",
+                                            "ref": "5aa66107-c0e4-453c-a2fb-e4e22d744fb4",
+                                            "label": "More than \u00a35000"
+                                        },
+                                        {
+                                            "id": "BwnkzbOWmso4",
+                                            "ref": "6104a6db-59e0-4f5f-95b9-9f6b5302bbd2",
+                                            "label": "\u00a32000 - \u00a35000"
+                                        },
+                                        {
+                                            "id": "X87PIwjazeV6",
+                                            "ref": "31fcfb35-db2f-4516-9107-b6de237aaa66",
+                                            "label": "\u00a31000 - \u00a32000"
+                                        },
+                                        {
+                                            "id": "KAFwq8b4AF2r",
+                                            "ref": "e679d76e-4d6d-42de-ae5b-9b92991846b2",
+                                            "label": "\u00a3500 - \u00a31000"
+                                        },
+                                        {
+                                            "id": "sllCFdoHcFyg",
+                                            "ref": "2bbc86a8-0754-4318-97ec-1fce0ee48c44",
+                                            "label": "\u00a31 - \u00a3500"
+                                        },
+                                        {
+                                            "id": "HFanBPbtWo9i",
+                                            "ref": "5f702a1c-a622-4c37-945c-67f3e679e1fa",
+                                            "label": "\u00a30 - I've never Invested"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "id": "BwVVRBktb7xm",
+                                    "ref": "5293aeb0-c2dc-4811-9857-8b6199ce60f3",
+                                    "type": "short_text",
+                                    "title": "First Name",
+                                    "properties": {}
+                                },
+                                {
+                                    "id": "PaJszjvubWyu",
+                                    "ref": "4900de89-ce90-4d66-bf30-9985524bb349",
+                                    "type": "short_text",
+                                    "title": "Last Name",
+                                    "properties": {}
+                                },
+                                {
+                                    "id": "ZKm14P9HuhK4",
+                                    "ref": "d7b5ac66-dfc4-4a1e-ac58-bb0a02783386",
+                                    "type": "phone_number",
+                                    "title": "Phone number",
+                                    "properties": {}
+                                },
+                                {
+                                    "id": "qddp9S6XCKXa",
+                                    "ref": "52751782-6287-4a0e-b66e-4e8698823695",
+                                    "type": "email",
+                                    "title": "Email Address",
+                                    "properties": {}
+                                },
+                                {
+                                    "id": "6hatAg2ETuqR",
+                                    "ref": "37de86ae-3f71-4f01-b429-72e34f95ad9e",
+                                    "type": "multiple_choice",
+                                    "title": "If we can help you secure your first deal, raise capital and build a profitable property portfolio in the next 2-6 months how much are you ready to invest to make that happen?",
+                                    "properties": {},
+                                    "choices": [
+                                        {
+                                            "id": "fzv5VTRol2b4",
+                                            "ref": "63d54005-d030-4bc9-a201-4d604f6ec39e",
+                                            "label": "Under \u00a31k GBP"
+                                        },
+                                        {
+                                            "id": "kgjzBoiWTx0x",
+                                            "ref": "61c657fb-632c-497f-ad62-f9c837ec5182",
+                                            "label": "\u00a31k - \u00a32k GBP"
+                                        },
+                                        {
+                                            "id": "lU7j5r2eOhwb",
+                                            "ref": "e65fba56-4079-48b6-bbfe-ab5d55f3a93a",
+                                            "label": "\u00a32k - \u00a33k GBP"
+                                        },
+                                        {
+                                            "id": "Xw937vnwTqyY",
+                                            "ref": "73d3ee8e-64a2-4b83-8ee6-403e875b49d4",
+                                            "label": "\u00a33k - \u00a36k GBP"
+                                        },
+                                        {
+                                            "id": "VxV7C4UWCa6A",
+                                            "ref": "c10fb126-19d4-4e6f-aa31-55944c9ddda2",
+                                            "label": "\u00a36k - \u00a310k GBP"
+                                        },
+                                        {
+                                            "id": "br0V2CheNtqE",
+                                            "ref": "a1f723bf-9327-44c3-be31-c0d9cc04b621",
+                                            "label": "\u00a310k+ GBP"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "id": "h3VsTeJ3N0xO",
+                                    "ref": "774f7da2-4717-4efd-a10f-b7bc575ffc74",
+                                    "type": "long_text",
+                                    "title": "What is motivating you to explore building your property business with Property Hussle right now? Are you looking to secure your first deal, suplement/replace your 9-5 income, or create long term wealth?",
+                                    "properties": {}
+                                },
+                                {
+                                    "id": "tKdXiSGdOdJb",
+                                    "ref": "df0591f9-f1b1-4b60-ad50-3599a0554a97",
+                                    "type": "yes_no",
+                                    "title": "You've made it to the next step of the application! On the next page you'll see a calendar to book a call with our team.\n\nWe do not allow reschedules so please confirm you will only pick a time that you can commit too.",
+                                    "properties": {}
+                                },
+                                {
+                                    "id": "TZphCJZtNRnE",
+                                    "ref": "c3a60437-0262-46a9-a678-93498570fe3a",
+                                    "type": "calendly",
+                                    "title": "Once you book your call, you'll be redirected to a confirmation page, make sure you wait for the page to load and follow the next steps.",
+                                    "properties": {}
+                                }
+                            ],
+                            "endings": [
+                                {
+                                    "id": "iYsqR4HWTlqs",
+                                    "ref": "a0723017-ee79-40d9-b869-c35c3603796e",
+                                    "title": "https://try.propertyhussle.com/call-confirmed-q",
+                                    "type": "url_redirect",
+                                    "properties": {
+                                        "redirect_url": "https://try.propertyhussle.com/call-confirmed-q"
+                                    }
+                                }
+                            ],
+                            "settings": {
+                                "partial_responses_to_all_integrations": true
+                            }
+                        },
+                        "answers": [
+                            {
+                                "type": "choice",
+                                "answer_url": "https://admin.typeform.com/form/tUx3IYmM/results?responseId=3xuerokdpyxw4e3xuer55mfuu3thxda1&fieldId=p0YD5HtMlbVK#responses",
+                                "choice": {
+                                    "id": "NyvfDdYvW5FH",
+                                    "label": "I've started my business, but havent secured any deals",
+                                    "ref": "c175d397-bfd8-4539-abc9-3b34e500932a"
+                                },
+                                "field": {
+                                    "id": "p0YD5HtMlbVK",
+                                    "type": "multiple_choice",
+                                    "ref": "9b61d211-b814-42e7-b2e3-2a3bb7aa0888"
+                                }
+                            },
+                            {
+                                "type": "choice",
+                                "answer_url": "https://admin.typeform.com/form/tUx3IYmM/results?responseId=3xuerokdpyxw4e3xuer55mfuu3thxda1&fieldId=B14BPb0K4KLL#responses",
+                                "choice": {
+                                    "id": "gIk8lRMQTS8R",
+                                    "label": "Lack of confidence/self belief",
+                                    "ref": "6415a916-9a04-4b5c-998f-1d1002e9aaa5"
+                                },
+                                "field": {
+                                    "id": "B14BPb0K4KLL",
+                                    "type": "multiple_choice",
+                                    "ref": "335bbaef-fd03-4c97-9e04-3c25e1bcce55"
+                                }
+                            },
+                            {
+                                "type": "choice",
+                                "answer_url": "https://admin.typeform.com/form/tUx3IYmM/results?responseId=3xuerokdpyxw4e3xuer55mfuu3thxda1&fieldId=Mgnj7vNSGKJi#responses",
+                                "choice": {
+                                    "id": "BwnkzbOWmso4",
+                                    "label": "\u00a32000 - \u00a35000",
+                                    "ref": "6104a6db-59e0-4f5f-95b9-9f6b5302bbd2"
+                                },
+                                "field": {
+                                    "id": "Mgnj7vNSGKJi",
+                                    "type": "multiple_choice",
+                                    "ref": "8e3e533d-9633-44fb-b343-99b70596bb65"
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "text": "Dudley",
+                                "answer_url": "https://admin.typeform.com/form/tUx3IYmM/results?responseId=3xuerokdpyxw4e3xuer55mfuu3thxda1&fieldId=BwVVRBktb7xm#responses",
+                                "field": {
+                                    "id": "BwVVRBktb7xm",
+                                    "type": "short_text",
+                                    "ref": "5293aeb0-c2dc-4811-9857-8b6199ce60f3"
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "text": "Jukes",
+                                "answer_url": "https://admin.typeform.com/form/tUx3IYmM/results?responseId=3xuerokdpyxw4e3xuer55mfuu3thxda1&fieldId=PaJszjvubWyu#responses",
+                                "field": {
+                                    "id": "PaJszjvubWyu",
+                                    "type": "short_text",
+                                    "ref": "4900de89-ce90-4d66-bf30-9985524bb349"
+                                }
+                            },
+                            {
+                                "type": "phone_number",
+                                "answer_url": "https://admin.typeform.com/form/tUx3IYmM/results?responseId=3xuerokdpyxw4e3xuer55mfuu3thxda1&fieldId=ZKm14P9HuhK4#responses",
+                                "phone_number": "+447466488525",
+                                "field": {
+                                    "id": "ZKm14P9HuhK4",
+                                    "type": "phone_number",
+                                    "ref": "d7b5ac66-dfc4-4a1e-ac58-bb0a02783386"
+                                }
+                            },
+                            {
+                                "type": "email",
+                                "answer_url": "https://admin.typeform.com/form/tUx3IYmM/results?responseId=3xuerokdpyxw4e3xuer55mfuu3thxda1&fieldId=qddp9S6XCKXa#responses",
+                                "email": "dudleyjukes@icloud.com",
+                                "field": {
+                                    "id": "qddp9S6XCKXa",
+                                    "type": "email",
+                                    "ref": "52751782-6287-4a0e-b66e-4e8698823695"
+                                }
+                            },
+                            {
+                                "type": "choice",
+                                "answer_url": "https://admin.typeform.com/form/tUx3IYmM/results?responseId=3xuerokdpyxw4e3xuer55mfuu3thxda1&fieldId=6hatAg2ETuqR#responses",
+                                "choice": {
+                                    "id": "Xw937vnwTqyY",
+                                    "label": "\u00a33k - \u00a36k GBP",
+                                    "ref": "73d3ee8e-64a2-4b83-8ee6-403e875b49d4"
+                                },
+                                "field": {
+                                    "id": "6hatAg2ETuqR",
+                                    "type": "multiple_choice",
+                                    "ref": "37de86ae-3f71-4f01-b429-72e34f95ad9e"
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "text": "Make money",
+                                "answer_url": "https://admin.typeform.com/form/tUx3IYmM/results?responseId=3xuerokdpyxw4e3xuer55mfuu3thxda1&fieldId=h3VsTeJ3N0xO#responses",
+                                "field": {
+                                    "id": "h3VsTeJ3N0xO",
+                                    "type": "long_text",
+                                    "ref": "774f7da2-4717-4efd-a10f-b7bc575ffc74"
+                                }
+                            },
+                            {
+                                "type": "boolean",
+                                "answer_url": "https://admin.typeform.com/form/tUx3IYmM/results?responseId=3xuerokdpyxw4e3xuer55mfuu3thxda1&fieldId=tKdXiSGdOdJb#responses",
+                                "boolean": true,
+                                "field": {
+                                    "id": "tKdXiSGdOdJb",
+                                    "type": "yes_no",
+                                    "ref": "df0591f9-f1b1-4b60-ad50-3599a0554a97"
+                                }
+                            },
+                            {
+                                "type": "url",
+                                "answer_url": "https://admin.typeform.com/form/tUx3IYmM/results?responseId=3xuerokdpyxw4e3xuer55mfuu3thxda1&fieldId=TZphCJZtNRnE#responses",
+                                "url": "https://calendly.com/d/cvnc-tkv-wx4/property-hussle-application-call/invitees/8a123748-ef9c-41ce-bd17-f28fd92ac3d1",
+                                "field": {
+                                    "id": "TZphCJZtNRnE",
+                                    "type": "calendly",
+                                    "ref": "c3a60437-0262-46a9-a678-93498570fe3a"
+                                }
+                            }
+                        ],
+                        "ending": {
+                            "id": "iYsqR4HWTlqs",
+                            "ref": "a0723017-ee79-40d9-b869-c35c3603796e"
+                        }
+                    }
+                },
+                "webhookUrl": "https://propertyhussle.app.n8n.cloud/webhook/typeform-Property-Hussle-Applciation-new-ad",
+                "executionMode": "production"
+            }
+        ]
+    },
+    "meta": {
+        "instanceId": "8b0968e82080ca3a539101af649065d63cbf690891f13b85ab9a36398e21d5e8"
+    }
+}

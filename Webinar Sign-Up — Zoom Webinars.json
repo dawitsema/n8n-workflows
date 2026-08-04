@@ -1,0 +1,2137 @@
+{
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "webinar-signup",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "d6148b33-9c6f-4b01-9a3c-c84d620de622",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                -15920,
+                -832
+            ],
+            "webhookId": "915f69ba-1f12-4df6-a2b8-a6339319be4a"
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "first_name",
+                            "value": "={{ $json.body.firstName }}"
+                        },
+                        {
+                            "name": "last_name",
+                            "value": "={{ $json.body.lastName || $json.body.firstName }}"
+                        },
+                        {
+                            "name": "email",
+                            "value": "={{ $json.body.email || $json.email }}"
+                        },
+                        {
+                            "name": "phone",
+                            "value": "={{ ($json.body.phone || $json.phone || '').replace(/[^0-9]/g, '') }}"
+                        },
+                        {
+                            "name": "phone_country_code",
+                            "value": "={{ $json.body.countryCode || '' }}"
+                        },
+                        {
+                            "name": "full_name",
+                            "value": "={{ $json.body.lastName ? ($json.body.firstName + ' ' + $json.body.lastName) : $json.body.firstName }}"
+                        },
+                        {
+                            "name": "utm_source",
+                            "value": "={{ $json.body.utm_source || $json.utm_source || 'direct' }}"
+                        },
+                        {
+                            "name": "utm_medium",
+                            "value": "={{ $json.body.utm_medium || $json.utm_medium || 'direct' }}"
+                        },
+                        {
+                            "name": "utm_campaign",
+                            "value": "={{ $json.body.utm_campaign || $json.utm_campaign || 'direct' }}"
+                        },
+                        {
+                            "name": "timestamp",
+                            "value": "={{ $json.body.timestamp || $now.toISO() }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "a89c5c04-cd11-43f6-a435-36ffed29ebd3",
+            "name": "Set: Format Data",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                -15696,
+                -832
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://zoom.us/oauth/token?grant_type=account_credentials&account_id=kbpLtGDzQema35lwj7M3OQ",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "Basic b3JMY3BxeExSc3U3UjYyelJYcG9XZzpaMGROcmE4dFBLTWxBVlA4bDBGdXc2Q0xHTG9KemtCWg=="
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "2ce0b631-2ba8-4ae1-9d37-dccfbf083154",
+            "name": "HTTP: Get Zoom Token",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                -15248,
+                -832
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://api.zoom.us/v2/users/me/webinars?type=upcoming&page_size=30",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "={{ 'Bearer ' + $json.access_token }}"
+                        },
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "0e0642ae-8e5d-46ba-8fc0-fcc739b7eb98",
+            "name": "HTTP: Get Upcoming Zoom Webinars",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                -15024,
+                -832
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const data = $input.first().json;\nconst webinars = data.webinars || [];\nconst formData = $('Set: Format Data').first().json;\nconst now = new Date();\n\nconst upcoming = webinars\n  .filter(w => w.start_time && new Date(w.start_time) > now)\n  .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));\n\nif (!upcoming.length) {\n  throw new Error('No upcoming Zoom webinar found. Check your Zoom account has a scheduled webinar.');\n}\n\nconst next = upcoming[0];\nconst webinarDate = new Date(next.start_time);\n\n// YYYY-MM-DD HH:mm (UK time) — kept for legacy / DB storage\nconst londonTimeStr = webinarDate\n  .toLocaleString('sv-SE', { timeZone: 'Europe/London', hour12: false })\n  .substring(0, 16);\n\n// Reliable formatted date: \"Jul 26, 2026 at 7PM UK\"\n// Uses Intl.DateTimeFormat — avoids locale-dependent .replace() fragility\nconst londonHour24 = parseInt(\n  new Intl.DateTimeFormat('en-US', {\n    timeZone: 'Europe/London',\n    hour: '2-digit',\n    hour12: false\n  }).format(webinarDate),\n  10\n);\n\nconst isPM   = londonHour24 >= 12;\nconst hour12 = londonHour24 === 0 ? 12 : londonHour24 > 12 ? londonHour24 - 12 : londonHour24;\nconst ampm   = isPM ? 'PM' : 'AM';\n\nconst month = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/London', month: 'short'  }).format(webinarDate);\nconst day   = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/London', day:   'numeric' }).format(webinarDate);\nconst year  = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/London', year:  'numeric' }).format(webinarDate);\n\nconst webinar_formatted_date = `${month} ${day}, ${year} at ${hour12}${ampm} UK`;\n\nreturn [{\n  json: {\n    ...formData,\n    webinar_id:             String(next.id),\n    webinar_name:           next.topic || '',\n    webinar_date:           londonTimeStr,\n    webinar_formatted_date,\n    webinar_timezone:       'Europe/London',\n    webinar_duration:       next.duration || 60\n  }\n}];"
+            },
+            "id": "5f4fb425-348d-4e29-9742-ee9012b0a5ab",
+            "name": "Code: Find Next Zoom Webinar",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -14800,
+                -832
+            ],
+            "executeOnce": false,
+            "onError": "continueErrorOutput"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{ 'https://api.zoom.us/v2/webinars/' + $json.webinar_id + '/registrants' }}",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "={{ 'Bearer ' + $('HTTP: Get Zoom Token').first().json.access_token }}"
+                        },
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "first_name",
+                            "value": "={{ $json.first_name }}"
+                        },
+                        {
+                            "name": "last_name",
+                            "value": "={{ $json.last_name }}"
+                        },
+                        {
+                            "name": "email",
+                            "value": "={{ $json.email }}"
+                        },
+                        {
+                            "name": "auto_approve",
+                            "value": "true"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "c10d93cc-db7c-4d6d-8016-66c655ed8df3",
+            "name": "HTTP: Register in Zoom Webinar",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                -14576,
+                -832
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const reg = $input.first().json; const prev = $('Code: Find Next Zoom Webinar').first().json; return [{ json: { first_name: prev.first_name, last_name: prev.last_name, full_name: prev.full_name, email: prev.email, phone: prev.phone, phone_country_code: prev.phone_country_code, utm_source: prev.utm_source, utm_medium: prev.utm_medium, utm_campaign: prev.utm_campaign, timestamp: prev.timestamp, webinar_id: prev.webinar_id, webinar_name: prev.webinar_name, webinar_date: prev.webinar_date, webinar_formatted_date: prev.webinar_formatted_date, webinar_timezone: prev.webinar_timezone, webinar_duration: prev.webinar_duration, join_url: reg.join_url || '', registrant_id: reg.registrant_id || '' }}];"
+            },
+            "id": "57a3a5fa-fd9f-43cf-8e7f-ea5fe43dfe2f",
+            "name": "Code: Merge Registration Data",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -14352,
+                -832
+            ]
+        },
+        {
+            "parameters": {
+                "id": 8808616,
+                "email": "={{ $('Code: Merge Registration Data').item.json.email }}",
+                "additionalFields": {
+                    "fieldsUi": {
+                        "fieldsValues": [
+                            {
+                                "key": "=first_name",
+                                "value": "={{ $('Code: Merge Registration Data').item.json.first_name }}"
+                            },
+                            {
+                                "key": "joinurl",
+                                "value": "={{ $('Code: Merge Registration Data').item.json.join_url }}"
+                            },
+                            {
+                                "key": "webinar_date_time",
+                                "value": "={{ $('Code: Merge Registration Data').item.json.webinar_formatted_date }}"
+                            },
+                            {
+                                "key": "last_name",
+                                "value": "={{ $('Code: Merge Registration Data').item.json.last_name }}"
+                            }
+                        ]
+                    }
+                }
+            },
+            "id": "2d5216d5-d94f-4398-89a5-5d027c4c4a27",
+            "name": "Kit: Add Tag 1",
+            "type": "n8n-nodes-base.convertKit",
+            "typeVersion": 1,
+            "position": [
+                -13904,
+                -736
+            ],
+            "retryOnFail": true,
+            "credentials": {
+                "convertKitApi": {
+                    "id": "FvJ5jXT6LL5kC5x3",
+                    "name": "ConvertKit account"
+                }
+            },
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "url": "={{ 'https://api.close.com/api/v1/lead/?query=email_address:\"' + $('Code: Merge Registration Data').item.json.email + '\"&_fields=id,display_name,custom' }}",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpBasicAuth",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": []
+                },
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "b821b7d9-fc6c-4f5e-9a3d-4c8f379fdb3f",
+            "name": "HTTP: Close — Find Lead",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                -13680,
+                -736
+            ],
+            "retryOnFail": true,
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "6ORCx5pBolsypKiC",
+                    "name": "Wati Bearer Token"
+                },
+                "httpBasicAuth": {
+                    "id": "dJmQ0AFSNKMEj05l",
+                    "name": "Close CRM"
+                }
+            },
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "number": [
+                        {
+                            "value1": "={{ $json.total_results }}",
+                            "operation": "larger"
+                        }
+                    ]
+                },
+                "combineOperation": "=all"
+            },
+            "id": "8cd05ca5-1273-420d-920e-066015ef5abe",
+            "name": "IF: Lead Exists in Close?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                -13456,
+                -736
+            ]
+        },
+        {
+            "parameters": {
+                "method": "PUT",
+                "url": "={{ 'https://api.close.com/api/v1/lead/' + $json.data[0].id + '/' }}",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpBasicAuth",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify({ 'custom.cf_8aJ9cQsiCdDIZi0VoKjWO26zwmAS0t7kNIpdiHoUW2U': $('Code: Merge Registration Data').first().json.webinar_formatted_date, 'status_id':'stat_LbdOPcm3MhNOhVxvQjkdcePgV8oknnIbMcQCp8ynSwc',  'custom.cf_ZzZlNhGFS4Jlz4DMrARYCoAY22qDKABLuHONGCrvXhb': \"No\" }) }}",
+                "options": {}
+            },
+            "id": "6802d3b9-f18e-4a77-9afe-4a21106d05f8",
+            "name": "HTTP: Close — Update Lead Webinar Fields",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                -13232,
+                -768
+            ],
+            "retryOnFail": true,
+            "credentials": {
+                "httpBasicAuth": {
+                    "id": "dJmQ0AFSNKMEj05l",
+                    "name": "Close CRM"
+                }
+            },
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.close.com/api/v1/lead/",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpBasicAuth",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify({ name: $('Code: Merge Registration Data').first().json.full_name, contacts: [Object.assign({ name: $('Code: Merge Registration Data').first().json.full_name, emails: [{ email: $('Code: Merge Registration Data').first().json.email, type: 'office' }] }, $('Code: Merge Registration Data').first().json.phone ? { phones: [{ phone: '+' + $('Code: Merge Registration Data').first().json.phone, type: 'mobile' }] } : {})], 'status_id': 'stat_LbdOPcm3MhNOhVxvQjkdcePgV8oknnIbMcQCp8ynSwc', 'custom.cf_8aJ9cQsiCdDIZi0VoKjWO26zwmAS0t7kNIpdiHoUW2U': $('Code: Merge Registration Data').first().json.webinar_formatted_date, 'custom.cf_ZzZlNhGFS4Jlz4DMrARYCoAY22qDKABLuHONGCrvXhb': 'No' }) }}",
+                "options": {}
+            },
+            "id": "526bd1e7-4db6-41da-b4ae-f7c5d3f5b91b",
+            "name": "HTTP: Close — Create Lead",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                -13232,
+                -576
+            ],
+            "credentials": {
+                "httpBasicAuth": {
+                    "id": "dJmQ0AFSNKMEj05l",
+                    "name": "Close CRM"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "channel": "C0A5XCCJGBH",
+                "text": "=:tada: *New Webinar Registrant (Zoom)*\n\n*Name:* {{ $('Code: Merge Registration Data').first().json.full_name }}\n*Email:* {{ $('Code: Merge Registration Data').first().json.email }}\n*Phone:* {{ $('Code: Merge Registration Data').first().json.phone ? ( $('Code: Merge Registration Data').first().json.phone) : 'N/A' }}\n*Webinar:* {{ $('Code: Merge Registration Data').first().json.webinar_name }}\n*Date:* {{ $('Code: Merge Registration Data').first().json.webinar_formatted_date }}\n*Source:* {{ $('Code: Merge Registration Data').first().json.utm_source }} / {{ $('Code: Merge Registration Data').first().json.utm_medium }} / {{ $('Code: Merge Registration Data').first().json.utm_campaign }}",
+                "otherOptions": {},
+                "attachments": []
+            },
+            "id": "f3c1744e-7441-4437-a1bd-7f53e8dd2a48",
+            "name": "Slack: Notify Channel",
+            "type": "n8n-nodes-base.slack",
+            "typeVersion": 1,
+            "position": [
+                -13008,
+                -736
+            ],
+            "credentials": {
+                "slackApi": {
+                    "id": "8bZIBpiUegrMppJK",
+                    "name": "Slack account 2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "resource": "sequence",
+                "id": 2819168,
+                "email": "={{ $('Code: Merge Registration Data').item.json.email }}",
+                "additionalFields": {
+                    "fieldsUi": {
+                        "fieldsValues": [
+                            {
+                                "key": "=first_name",
+                                "value": "={{ $('Code: Merge Registration Data').item.json.first_name }}"
+                            },
+                            {
+                                "key": "webinar_date_time",
+                                "value": "={{ $('Code: Merge Registration Data').item.json.webinar_formatted_date }}"
+                            },
+                            {
+                                "key": "joinurl",
+                                "value": "={{ $('Code: Merge Registration Data').item.json.join_url }}"
+                            }
+                        ]
+                    },
+                    "firstName": "={{ $('Code: Merge Registration Data').item.json.first_name }}"
+                }
+            },
+            "id": "0befd3fb-0b3d-4d38-9899-30e73b51c624",
+            "name": "Kit: Add to Sequence",
+            "type": "n8n-nodes-base.convertKit",
+            "typeVersion": 1,
+            "position": [
+                -12784,
+                -736
+            ],
+            "credentials": {
+                "convertKitApi": {
+                    "id": "FvJ5jXT6LL5kC5x3",
+                    "name": "ConvertKit account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{ $('Code: Merge Registration Data').first().json.phone }}",
+                            "operation": "isNotEmpty"
+                        }
+                    ]
+                }
+            },
+            "id": "1be0f89d-da3c-4c7f-a95f-ff49b4ecf0ca",
+            "name": "IF: Has Phone?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                -12560,
+                -736
+            ]
+        },
+        {
+            "parameters": {
+                "amount": 7,
+                "unit": "minutes"
+            },
+            "id": "a1bbfff4-afe7-4c05-a838-2b3cf6f1e1d8",
+            "name": "Wait: 7 Minutes",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1,
+            "position": [
+                -11888,
+                -768
+            ],
+            "webhookId": "f182baec-e61c-46b5-8f72-3b36a64d7e36"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://live-mt-server.wati.io/10179653/api/v1/sendTemplateMessage?whatsappNumber={{ $('Wati – Add Contact').item.json.wa_id }}",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify({\n  template_name: 'webinar_confirmation_text_new',\n  broadcast_name: 'webinar_confirmation_text_new',\n  channel_number: '',\n  parameters: [\n    { name: 'name', value: $('Code: Merge Registration Data').item.json.first_name}\n  ]\n}) }}",
+                "options": {}
+            },
+            "id": "1bee5188-3ffb-4118-ae62-142f2f392944",
+            "name": "HTTP: Wati — Send WhatsApp Confirmation",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                -11664,
+                -768
+            ],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "6ORCx5pBolsypKiC",
+                    "name": "Wati Bearer Token"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const d = $('HTTP: Get Upcoming Zoom Webinars').first().json;\nconst webinars = d.webinars || [];\nconst now = new Date();\n\n// Sort to find the true next webinar (avoids webinars[0] ordering assumption)\nconst upcoming = webinars\n  .filter(w => w.start_time && new Date(w.start_time) > now)\n  .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));\n\nif (!upcoming.length) {\n  throw new Error('No upcoming webinar found for reminder calculation.');\n}\n\nconst webinarDate = new Date(upcoming[0].start_time);\nconst h  = (webinarDate - now) / 3600000;\nconst ms = webinarDate.getTime();\n\n// ISO UTC strings — unambiguous; Wait nodes fire correctly regardless of\n// the n8n workflow timezone (fixes the Europe/Madrid vs Europe/London 1-hour gap)\nconst toISO = (date) => date.toISOString();\n\nreturn [{\n  json: {\n    ...d,\n    hoursUntil:          Math.round(h * 10) / 10,\n\n    reminder_48h:        toISO(new Date(ms - 48 * 3600000)),\n    reminder_24h:        toISO(new Date(ms - 24 * 3600000)),\n    reminder_2h:         toISO(new Date(ms -  2 * 3600000)),\n\n    reminder_5m_before:  toISO(new Date(ms -  5 * 60000)),\n    reminder_exact:      toISO(new Date(ms)),\n\n    reminder_15m_before: toISO(new Date(ms - 15 * 60000)),\n    reminder_15m_after:  toISO(new Date(ms + 15 * 60000)),\n    reminder_30m_after:  toISO(new Date(ms + 30 * 60000))\n  }\n}];"
+            },
+            "id": "c37a6565-2791-479b-98bf-3796fe4a5a9a",
+            "name": "Code: Calculate Reminder Times",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -11440,
+                -736
+            ]
+        },
+        {
+            "parameters": {
+                "value1": "={{ $json.hoursUntil }}",
+                "rules": {
+                    "rules": [
+                        {
+                            "operation": "larger",
+                            "value2": 48
+                        },
+                        {
+                            "operation": "largerEqual",
+                            "value2": 24,
+                            "output": 1
+                        },
+                        {
+                            "operation": "largerEqual",
+                            "value2": 2,
+                            "output": 2
+                        }
+                    ]
+                },
+                "fallbackOutput": 3
+            },
+            "id": "152c40a2-5c81-4d87-abdf-372c07125a52",
+            "name": "Switch: Route by Time",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 1,
+            "position": [
+                -11216,
+                -768
+            ]
+        },
+        {
+            "parameters": {
+                "resume": "specificTime",
+                "dateTime": "={{ $json.reminder_48h }}"
+            },
+            "id": "0a050d16-370c-415b-bf67-676e5e651887",
+            "name": "Wait: 48h Before",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1,
+            "position": [
+                -10992,
+                -960
+            ],
+            "webhookId": "643d221e-6bbc-4436-b893-1ef8e15dbce0",
+            "disabled": true
+        },
+        {
+            "parameters": {
+                "resume": "specificTime",
+                "dateTime": "={{ $('Code: Calculate Reminder Times').item.json.reminder_24h }}"
+            },
+            "id": "2427a6b8-2c30-4822-a390-12434df95b32",
+            "name": "Wait: 24h Before",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1,
+            "position": [
+                -10544,
+                -864
+            ],
+            "webhookId": "9c8b9308-7514-481b-838e-ef600b27e224",
+            "disabled": true
+        },
+        {
+            "parameters": {
+                "resume": "specificTime",
+                "dateTime": "={{ $('Code: Calculate Reminder Times').item.json.reminder_2h }}"
+            },
+            "id": "69e4398f-736f-488b-91b8-75f824d453e1",
+            "name": "Wait: 2h Before",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1,
+            "position": [
+                -10096,
+                -736
+            ],
+            "webhookId": "64b4634c-25e7-4ee7-b1f4-01dca4cea7c4",
+            "disabled": true
+        },
+        {
+            "parameters": {
+                "resume": "specificTime",
+                "dateTime": "={{ $('Code: Calculate Reminder Times').item.json.reminder_15m_before }}"
+            },
+            "id": "7339867e-7150-4649-b86e-b2fbfe129dca",
+            "name": "Wait: 15m Before",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1,
+            "position": [
+                -9648,
+                -672
+            ],
+            "webhookId": "27fe0b49-e212-4f3f-a7d3-8938feee6326",
+            "disabled": true
+        },
+        {
+            "parameters": {
+                "resume": "specificTime",
+                "dateTime": "={{ $('Code: Calculate Reminder Times').item.json.reminder_15m_after }}"
+            },
+            "id": "76f999d0-f2c7-4d71-98e6-a40208ace948",
+            "name": "Wait: 15m After",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1,
+            "position": [
+                -8304,
+                -672
+            ],
+            "webhookId": "4af56fc2-c075-4385-b909-a0004c53d7bb"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://rykhufcfiooqosgglabb.supabase.co/functions/v1/webinar-event-webhook",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "name": "x-webinar-secret",
+                            "value": "a38a3ad477868108216b4985d07315f3254848c855b9e7f4"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify({ event: 'registered', email: $json.email, first_name: $json.first_name, last_name: $json.last_name, phone: $json.phone || null, zoom_webinar_id: $json.webinar_id, webinar_date: $json.webinar_date, occurred_at: $json.timestamp, utm_source: $json.utm_source, utm_medium: $json.utm_medium, utm_campaign: $json.utm_campaign }) }}",
+                "options": {}
+            },
+            "id": "191c8d3e-9e29-4520-8953-ec761e42ce12",
+            "name": "HTTP: Post to Dashboard",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                -14128,
+                -736
+            ],
+            "retryOnFail": true,
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={\n  \"joinUrl\": \"{{ $json.join_url }}\"\n} ",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.5,
+            "position": [
+                -14128,
+                -928
+            ],
+            "id": "2b54035e-c198-42a8-880f-e6468083418e",
+            "name": "Respond to Webhook"
+        },
+        {
+            "parameters": {
+                "operation": "append",
+                "documentId": {
+                    "__rl": true,
+                    "value": "172V7LXGegU7nSsTkiJDcBi_1D8BfnL3DsOcFdcAn5HM",
+                    "mode": "list",
+                    "cachedResultName": "Backup Registrant Zoom Webinars",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/172V7LXGegU7nSsTkiJDcBi_1D8BfnL3DsOcFdcAn5HM/edit?usp=drivesdk"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "gid=0",
+                    "mode": "list",
+                    "cachedResultName": "Sheet1",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/172V7LXGegU7nSsTkiJDcBi_1D8BfnL3DsOcFdcAn5HM/edit#gid=0"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "Timestamp ": "={{ $json.timestamp }}",
+                        "First Name": "={{ $json.first_name }}",
+                        "Last Name ": "={{ $json.last_name }}",
+                        "Email ": "={{ $json.email }}",
+                        "Phone": "={{ $json.phone }}",
+                        "UTM Source": "={{ $json.utm_source }}",
+                        "UTM Medium": "={{ $json.utm_medium }}",
+                        "UTM Campaign": "={{ $json.utm_campaign }}",
+                        "Status": "Webinar Registered"
+                    },
+                    "matchingColumns": [],
+                    "schema": [
+                        {
+                            "id": "Timestamp ",
+                            "displayName": "Timestamp ",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "First Name",
+                            "displayName": "First Name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Last Name ",
+                            "displayName": "Last Name ",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Email ",
+                            "displayName": "Email ",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Phone",
+                            "displayName": "Phone",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "UTM Source",
+                            "displayName": "UTM Source",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "UTM Medium",
+                            "displayName": "UTM Medium",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "UTM Campaign",
+                            "displayName": "UTM Campaign",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Status",
+                            "displayName": "Status",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.7,
+            "position": [
+                -15472,
+                -832
+            ],
+            "id": "e6586e3e-aa30-483d-ae93-a8e6e57d5794",
+            "name": "Sheets: Backup Registrant",
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "cVoR6CgHHfdq9ps5",
+                    "name": "Google Sheets account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://live-mt-server.wati.io/api/ext/v3/contacts",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify({\n  whatsapp_number: $('Code: Merge Registration Data').item.json.phone,\n  name: $('Code: Merge Registration Data').item.json.first_name,\n  custom_params: [\n    { name: 'webinar_link', value: $('Code: Merge Registration Data').item.json.join_url },\n    { name: 'name', value: $('Code: Merge Registration Data').item.json.first_name }  ]\n}) }}",
+                "options": {}
+            },
+            "id": "8d083d9a-3f48-4b6e-8159-bdb184a4f4a2",
+            "name": "Wati – Add Contact",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                -12336,
+                -768
+            ],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "6ORCx5pBolsypKiC",
+                    "name": "Wati Bearer Token"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "upsert",
+                "schema": {
+                    "__rl": true,
+                    "mode": "list",
+                    "value": "public"
+                },
+                "table": {
+                    "__rl": true,
+                    "value": "webinar_registrants",
+                    "mode": "list",
+                    "cachedResultName": "webinar_registrants"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "attended": false,
+                        "email": "={{ $('Code: Merge Registration Data').item.json.email }}",
+                        "first_name": "={{ $('Code: Merge Registration Data').item.json.first_name }}",
+                        "last_name": "={{ $('Code: Merge Registration Data').item.json.last_name }}",
+                        "full_name": "={{ $('Code: Merge Registration Data').item.json.full_name }}",
+                        "phone": "={{ $('Code: Merge Registration Data').item.json.phone }}",
+                        "phone_country_code": "={{ $('Code: Merge Registration Data').item.json.phone_country_code }}",
+                        "utm_source": "={{ $('Code: Merge Registration Data').item.json.utm_source }}",
+                        "utm_medium": "={{ $('Code: Merge Registration Data').item.json.utm_medium }}",
+                        "utm_campaign": "={{ $('Code: Merge Registration Data').item.json.utm_campaign }}",
+                        "webinar_id": "={{ $('Code: Merge Registration Data').item.json.webinar_id }}",
+                        "webinar_name": "={{ $('Code: Merge Registration Data').item.json.webinar_name }}",
+                        "webinar_date": "={{ $('HTTP: Get Upcoming Zoom Webinars').item.json.webinars[0].start_time }}",
+                        "join_url": "={{ $('Code: Merge Registration Data').item.json.join_url }}",
+                        "wati_id": "={{ $json.wa_id }}",
+                        "zoom_registrant_id": "={{ $('Code: Merge Registration Data').item.json.registrant_id }}",
+                        "status": " registered",
+                        "registered_at": "={{ $('Code: Merge Registration Data').item.json.timestamp }}",
+                        "updated_at": "={{ $now }}"
+                    },
+                    "matchingColumns": [
+                        "email"
+                    ],
+                    "schema": [
+                        {
+                            "id": "id",
+                            "displayName": "id",
+                            "required": false,
+                            "defaultMatch": true,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": true
+                        },
+                        {
+                            "id": "email",
+                            "displayName": "email",
+                            "required": true,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "first_name",
+                            "displayName": "first_name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false
+                        },
+                        {
+                            "id": "last_name",
+                            "displayName": "last_name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false
+                        },
+                        {
+                            "id": "full_name",
+                            "displayName": "full_name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false
+                        },
+                        {
+                            "id": "phone",
+                            "displayName": "phone",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false
+                        },
+                        {
+                            "id": "phone_country_code",
+                            "displayName": "phone_country_code",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false
+                        },
+                        {
+                            "id": "utm_source",
+                            "displayName": "utm_source",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false
+                        },
+                        {
+                            "id": "utm_medium",
+                            "displayName": "utm_medium",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false
+                        },
+                        {
+                            "id": "utm_campaign",
+                            "displayName": "utm_campaign",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false
+                        },
+                        {
+                            "id": "webinar_id",
+                            "displayName": "webinar_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false
+                        },
+                        {
+                            "id": "webinar_name",
+                            "displayName": "webinar_name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false
+                        },
+                        {
+                            "id": "webinar_date",
+                            "displayName": "webinar_date",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": false
+                        },
+                        {
+                            "id": "webinar_timezone",
+                            "displayName": "webinar_timezone",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false,
+                            "removed": true
+                        },
+                        {
+                            "id": "join_url",
+                            "displayName": "join_url",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false
+                        },
+                        {
+                            "id": "zoom_registrant_id",
+                            "displayName": "zoom_registrant_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false
+                        },
+                        {
+                            "id": "wati_id",
+                            "displayName": "wati_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false
+                        },
+                        {
+                            "id": "attended",
+                            "displayName": "attended",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "boolean",
+                            "canBeUsedToMatch": false
+                        },
+                        {
+                            "id": "status",
+                            "displayName": "status",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false
+                        },
+                        {
+                            "id": "registered_at",
+                            "displayName": "registered_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": false
+                        },
+                        {
+                            "id": "updated_at",
+                            "displayName": "updated_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": false
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.6,
+            "position": [
+                -12112,
+                -768
+            ],
+            "id": "114fb558-44e5-447c-8bfa-7d84c104487c",
+            "name": "Save to DB",
+            "retryOnFail": true,
+            "credentials": {
+                "postgres": {
+                    "id": "vHzmmnuirqKCSruC",
+                    "name": "Postgres account"
+                }
+            },
+            "onError": "continueErrorOutput"
+        },
+        {
+            "parameters": {
+                "operation": "upsert",
+                "schema": {
+                    "__rl": true,
+                    "mode": "list",
+                    "value": "public"
+                },
+                "table": {
+                    "__rl": true,
+                    "value": "webinar_registrants",
+                    "mode": "list",
+                    "cachedResultName": "webinar_registrants"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "attended": false,
+                        "email": "={{ $('Code: Merge Registration Data').item.json.email }}",
+                        "first_name": "={{ $('Code: Merge Registration Data').item.json.first_name }}",
+                        "last_name": "={{ $('Code: Merge Registration Data').item.json.last_name }}",
+                        "full_name": "={{ $('Code: Merge Registration Data').item.json.full_name }}",
+                        "phone": "={{ $('Code: Merge Registration Data').item.json.phone }}",
+                        "phone_country_code": "={{ $('Code: Merge Registration Data').item.json.phone_country_code }}",
+                        "utm_source": "={{ $('Code: Merge Registration Data').item.json.utm_source }}",
+                        "utm_medium": "={{ $('Code: Merge Registration Data').item.json.utm_medium }}",
+                        "utm_campaign": "={{ $('Code: Merge Registration Data').item.json.utm_campaign }}",
+                        "webinar_id": "={{ $('Code: Merge Registration Data').item.json.webinar_id }}",
+                        "webinar_name": "={{ $('Code: Merge Registration Data').item.json.webinar_name }}",
+                        "join_url": "={{ $('Code: Merge Registration Data').item.json.join_url }}",
+                        "webinar_timezone": "={{ $('Code: Merge Registration Data').item.json.webinar_timezone }}",
+                        "zoom_registrant_id": "={{ $('Code: Merge Registration Data').item.json.registrant_id }}"
+                    },
+                    "matchingColumns": [
+                        "email"
+                    ],
+                    "schema": [
+                        {
+                            "id": "id",
+                            "displayName": "id",
+                            "required": false,
+                            "defaultMatch": true,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": true
+                        },
+                        {
+                            "id": "email",
+                            "displayName": "email",
+                            "required": true,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "first_name",
+                            "displayName": "first_name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false,
+                            "removed": false
+                        },
+                        {
+                            "id": "last_name",
+                            "displayName": "last_name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false,
+                            "removed": false
+                        },
+                        {
+                            "id": "full_name",
+                            "displayName": "full_name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false,
+                            "removed": false
+                        },
+                        {
+                            "id": "phone",
+                            "displayName": "phone",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false,
+                            "removed": false
+                        },
+                        {
+                            "id": "phone_country_code",
+                            "displayName": "phone_country_code",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false,
+                            "removed": false
+                        },
+                        {
+                            "id": "utm_source",
+                            "displayName": "utm_source",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false,
+                            "removed": false
+                        },
+                        {
+                            "id": "utm_medium",
+                            "displayName": "utm_medium",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false,
+                            "removed": false
+                        },
+                        {
+                            "id": "utm_campaign",
+                            "displayName": "utm_campaign",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false,
+                            "removed": false
+                        },
+                        {
+                            "id": "webinar_id",
+                            "displayName": "webinar_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false,
+                            "removed": false
+                        },
+                        {
+                            "id": "webinar_name",
+                            "displayName": "webinar_name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false,
+                            "removed": false
+                        },
+                        {
+                            "id": "webinar_date",
+                            "displayName": "webinar_date",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": false,
+                            "removed": false
+                        },
+                        {
+                            "id": "webinar_timezone",
+                            "displayName": "webinar_timezone",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false,
+                            "removed": false
+                        },
+                        {
+                            "id": "join_url",
+                            "displayName": "join_url",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false,
+                            "removed": false
+                        },
+                        {
+                            "id": "zoom_registrant_id",
+                            "displayName": "zoom_registrant_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false,
+                            "removed": false
+                        },
+                        {
+                            "id": "wati_id",
+                            "displayName": "wati_id",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false,
+                            "removed": false
+                        },
+                        {
+                            "id": "attended",
+                            "displayName": "attended",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "boolean",
+                            "canBeUsedToMatch": false,
+                            "removed": false
+                        },
+                        {
+                            "id": "status",
+                            "displayName": "status",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": false,
+                            "removed": false
+                        },
+                        {
+                            "id": "registered_at",
+                            "displayName": "registered_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": false,
+                            "removed": false
+                        },
+                        {
+                            "id": "updated_at",
+                            "displayName": "updated_at",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "dateTime",
+                            "canBeUsedToMatch": false,
+                            "removed": false
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.6,
+            "position": [
+                -11664,
+                -576
+            ],
+            "id": "eb1dcd0a-4355-4dae-bdbc-aa04f9641f37",
+            "name": "Save to DB (No Phone)",
+            "credentials": {
+                "postgres": {
+                    "id": "vHzmmnuirqKCSruC",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "resource": "sequence",
+                "id": 2567734,
+                "email": "={{ $('Code: Merge Registration Data').item.json.email }}",
+                "additionalFields": {
+                    "fieldsUi": {
+                        "fieldsValues": [
+                            {
+                                "key": "first_name ",
+                                "value": "={{ $('Code: Merge Registration Data').item.json.first_name }}"
+                            }
+                        ]
+                    }
+                }
+            },
+            "type": "n8n-nodes-base.convertKit",
+            "typeVersion": 1,
+            "position": [
+                -10768,
+                -960
+            ],
+            "id": "8f1f4fe1-d4e6-4ab4-b88a-fc0b61a2c2c2",
+            "name": "Email: 48h Reminder",
+            "retryOnFail": true,
+            "maxTries": 5,
+            "alwaysOutputData": true,
+            "waitBetweenTries": 5000,
+            "credentials": {
+                "convertKitApi": {
+                    "id": "FvJ5jXT6LL5kC5x3",
+                    "name": "ConvertKit account"
+                }
+            },
+            "disabled": true,
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "resource": "sequence",
+                "id": 2567735,
+                "email": "={{ $('Code: Merge Registration Data').item.json.email }}",
+                "additionalFields": {
+                    "fieldsUi": {
+                        "fieldsValues": [
+                            {
+                                "key": "first_name ",
+                                "value": "={{ $('Code: Merge Registration Data').item.json.first_name }}"
+                            },
+                            {
+                                "key": "webinar_date_time ",
+                                "value": "={{ $('Code: Merge Registration Data').item.json.webinar_formatted_date }}"
+                            }
+                        ]
+                    }
+                }
+            },
+            "type": "n8n-nodes-base.convertKit",
+            "typeVersion": 1,
+            "position": [
+                -10320,
+                -864
+            ],
+            "id": "68ba3b35-baf4-489d-9656-5ab403649fad",
+            "name": "Email: 24h Reminder",
+            "retryOnFail": true,
+            "alwaysOutputData": true,
+            "waitBetweenTries": 5000,
+            "maxTries": 5,
+            "credentials": {
+                "convertKitApi": {
+                    "id": "FvJ5jXT6LL5kC5x3",
+                    "name": "ConvertKit account"
+                }
+            },
+            "disabled": true,
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "resource": "sequence",
+                "id": 2567737,
+                "email": "={{ $('Code: Merge Registration Data').item.json.email }}",
+                "additionalFields": {
+                    "fieldsUi": {
+                        "fieldsValues": [
+                            {
+                                "key": "first_name ",
+                                "value": "={{ $('Code: Merge Registration Data').item.json.first_name }}"
+                            },
+                            {
+                                "key": "webinar_date_time ",
+                                "value": "={{ $('Code: Merge Registration Data').item.json.webinar_formatted_date }}"
+                            },
+                            {
+                                "key": "joinurl ",
+                                "value": "={{ $('Code: Merge Registration Data').item.json.join_url }}"
+                            }
+                        ]
+                    }
+                }
+            },
+            "type": "n8n-nodes-base.convertKit",
+            "typeVersion": 1,
+            "position": [
+                -9872,
+                -736
+            ],
+            "id": "098663c6-1fcb-4525-b99a-c79afab29373",
+            "name": "Email: 2h Before Reminder",
+            "retryOnFail": true,
+            "alwaysOutputData": true,
+            "maxTries": 5,
+            "waitBetweenTries": 5000,
+            "credentials": {
+                "convertKitApi": {
+                    "id": "FvJ5jXT6LL5kC5x3",
+                    "name": "ConvertKit account"
+                }
+            },
+            "disabled": true,
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "resource": "sequence",
+                "id": 2567740,
+                "email": "={{ $('Code: Merge Registration Data').item.json.email }}",
+                "additionalFields": {
+                    "fieldsUi": {
+                        "fieldsValues": [
+                            {
+                                "key": "first_name ",
+                                "value": "={{ $('Code: Merge Registration Data').item.json.first_name }}"
+                            },
+                            {
+                                "key": "joinurl ",
+                                "value": "={{ $('Code: Merge Registration Data').item.json.join_url }}"
+                            }
+                        ]
+                    }
+                }
+            },
+            "type": "n8n-nodes-base.convertKit",
+            "typeVersion": 1,
+            "position": [
+                -9424,
+                -672
+            ],
+            "id": "5669023d-16b5-4707-8f3e-02ae7495c0e5",
+            "name": "Email: 15m Before Reminder",
+            "alwaysOutputData": true,
+            "retryOnFail": true,
+            "maxTries": 5,
+            "waitBetweenTries": 5000,
+            "credentials": {
+                "convertKitApi": {
+                    "id": "FvJ5jXT6LL5kC5x3",
+                    "name": "ConvertKit account"
+                }
+            },
+            "disabled": true,
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "resource": "sequence",
+                "id": 2567745,
+                "email": "={{ $('Code: Merge Registration Data').item.json.email }}",
+                "additionalFields": {
+                    "fieldsUi": {
+                        "fieldsValues": [
+                            {
+                                "key": "first_name ",
+                                "value": "={{ $('Code: Merge Registration Data').item.json.first_name }}"
+                            }
+                        ]
+                    }
+                }
+            },
+            "type": "n8n-nodes-base.convertKit",
+            "typeVersion": 1,
+            "position": [
+                -8080,
+                -672
+            ],
+            "id": "b1975092-85a9-4a5d-8bf4-46b2be8f8933",
+            "name": "Email: 15m After",
+            "retryOnFail": true,
+            "alwaysOutputData": true,
+            "maxTries": 5,
+            "waitBetweenTries": 5000,
+            "credentials": {
+                "convertKitApi": {
+                    "id": "FvJ5jXT6LL5kC5x3",
+                    "name": "ConvertKit account"
+                }
+            },
+            "disabled": true,
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "resume": "specificTime",
+                "dateTime": "={{ $('Switch: Route by Time').item.json.reminder_5m_before }}"
+            },
+            "id": "7485493f-83c4-459d-886d-915ef1a89241",
+            "name": "Wait: 5m Before",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1,
+            "position": [
+                -9200,
+                -672
+            ],
+            "webhookId": "27fe0b49-e212-4f3f-a7d3-8938feee6326"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://live-mt-server.wati.io/10179653/api/v1/sendTemplateMessage?whatsappNumber={{ $('Wati – Add Contact').item.json.wa_id }}",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify({\n  template_name: 'starting_in_5_new',\n  broadcast_name: 'starting_in_5_new',\n  channel_number: '',\n  parameters: [\n    { name: 'name', value: $('Code: Merge Registration Data').item.json.first_name}\n  ]\n}) }}",
+                "options": {}
+            },
+            "id": "52ad2aef-21d4-4def-a7c4-4aea008247df",
+            "name": "HTTP: Wati — Send WhatsApp Message 5 Minutes Before",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                -8976,
+                -672
+            ],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "6ORCx5pBolsypKiC",
+                    "name": "Wati Bearer Token"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "resume": "specificTime",
+                "dateTime": "={{ $('Code: Calculate Reminder Times').item.json.reminder_exact }}"
+            },
+            "id": "a7fedb02-b182-46bf-bea5-eb6666581e28",
+            "name": "Wait: Happening Now",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1,
+            "position": [
+                -8752,
+                -672
+            ],
+            "webhookId": "27fe0b49-e212-4f3f-a7d3-8938feee6326"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://live-mt-server.wati.io/10179653/api/v1/sendTemplateMessage?whatsappNumber={{ $('Wati – Add Contact').item.json.wa_id }}",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify({\n  template_name: 'we_are_live_webinar',\n  broadcast_name: 'we_are_live_webinar',\n  channel_number: '',\n  parameters: [\n    { name: 'webinar_link', value: $('Code: Merge Registration Data').item.json.join_url}\n  ]\n}) }}",
+                "options": {}
+            },
+            "id": "fac21da7-ea33-4ae8-a572-9a1d2623cb89",
+            "name": "HTTP: Wati — Send WhatsApp Message NOW",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                -8528,
+                -672
+            ],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "6ORCx5pBolsypKiC",
+                    "name": "Wati Bearer Token"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://live-mt-server.wati.io/10179653/api/v1/sendTemplateMessage?whatsappNumber={{ $('Wati – Add Contact').item.json.wa_id }}",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify({\n  template_name: 'we_are_15_mins_in',\n  broadcast_name: 'we_are_15_mins_in',\n  channel_number: '',\n  parameters: [\n    { name: 'webinar_link', value: $('Code: Merge Registration Data').item.json.join_url}\n  ]\n}) }}",
+                "options": {}
+            },
+            "id": "4d7a5006-1fbb-4a86-b988-49ca0eca5df6",
+            "name": "HTTP: Wati — Send WhatsApp Message After 15m",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                -7856,
+                -672
+            ],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "6ORCx5pBolsypKiC",
+                    "name": "Wati Bearer Token"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Set: Format Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set: Format Data": {
+            "main": [
+                [
+                    {
+                        "node": "Sheets: Backup Registrant",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP: Get Zoom Token": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP: Get Upcoming Zoom Webinars",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP: Get Upcoming Zoom Webinars": {
+            "main": [
+                [
+                    {
+                        "node": "Code: Find Next Zoom Webinar",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code: Find Next Zoom Webinar": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP: Register in Zoom Webinar",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP: Register in Zoom Webinar": {
+            "main": [
+                [
+                    {
+                        "node": "Code: Merge Registration Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code: Merge Registration Data": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "HTTP: Post to Dashboard",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Kit: Add Tag 1": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP: Close — Find Lead",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP: Close — Find Lead": {
+            "main": [
+                [
+                    {
+                        "node": "IF: Lead Exists in Close?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "IF: Lead Exists in Close?": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP: Close — Update Lead Webinar Fields",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "HTTP: Close — Create Lead",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP: Close — Update Lead Webinar Fields": {
+            "main": [
+                [
+                    {
+                        "node": "Slack: Notify Channel",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP: Close — Create Lead": {
+            "main": [
+                [
+                    {
+                        "node": "Slack: Notify Channel",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Slack: Notify Channel": {
+            "main": [
+                [
+                    {
+                        "node": "Kit: Add to Sequence",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Kit: Add to Sequence": {
+            "main": [
+                [
+                    {
+                        "node": "IF: Has Phone?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "IF: Has Phone?": {
+            "main": [
+                [
+                    {
+                        "node": "Wati – Add Contact",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Save to DB (No Phone)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait: 7 Minutes": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP: Wati — Send WhatsApp Confirmation",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP: Wati — Send WhatsApp Confirmation": {
+            "main": [
+                [
+                    {
+                        "node": "Code: Calculate Reminder Times",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code: Calculate Reminder Times": {
+            "main": [
+                [
+                    {
+                        "node": "Switch: Route by Time",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Switch: Route by Time": {
+            "main": [
+                [
+                    {
+                        "node": "Wait: 48h Before",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Wait: 24h Before",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Wait: 2h Before",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Wait: 15m Before",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait: 48h Before": {
+            "main": [
+                [
+                    {
+                        "node": "Email: 48h Reminder",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait: 24h Before": {
+            "main": [
+                [
+                    {
+                        "node": "Email: 24h Reminder",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait: 2h Before": {
+            "main": [
+                [
+                    {
+                        "node": "Email: 2h Before Reminder",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait: 15m Before": {
+            "main": [
+                [
+                    {
+                        "node": "Email: 15m Before Reminder",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait: 15m After": {
+            "main": [
+                [
+                    {
+                        "node": "Email: 15m After",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP: Post to Dashboard": {
+            "main": [
+                [
+                    {
+                        "node": "Kit: Add Tag 1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Sheets: Backup Registrant": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP: Get Zoom Token",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wati – Add Contact": {
+            "main": [
+                [
+                    {
+                        "node": "Save to DB",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Save to DB": {
+            "main": [
+                [
+                    {
+                        "node": "Wait: 7 Minutes",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Save to DB (No Phone)": {
+            "main": [
+                [
+                    {
+                        "node": "Code: Calculate Reminder Times",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Email: 48h Reminder": {
+            "main": [
+                [
+                    {
+                        "node": "Wait: 24h Before",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Email: 24h Reminder": {
+            "main": [
+                [
+                    {
+                        "node": "Wait: 2h Before",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Email: 2h Before Reminder": {
+            "main": [
+                [
+                    {
+                        "node": "Wait: 15m Before",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Email: 15m Before Reminder": {
+            "main": [
+                [
+                    {
+                        "node": "Wait: 5m Before",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Email: 15m After": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP: Wati — Send WhatsApp Message After 15m",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait: 5m Before": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP: Wati — Send WhatsApp Message 5 Minutes Before",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP: Wati — Send WhatsApp Message 5 Minutes Before": {
+            "main": [
+                [
+                    {
+                        "node": "Wait: Happening Now",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait: Happening Now": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP: Wati — Send WhatsApp Message NOW",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP: Wati — Send WhatsApp Message NOW": {
+            "main": [
+                [
+                    {
+                        "node": "Wait: 15m After",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "pinData": {},
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "8b0968e82080ca3a539101af649065d63cbf690891f13b85ab9a36398e21d5e8"
+    }
+}

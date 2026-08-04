@@ -1,0 +1,308 @@
+﻿{
+    "name": "Webinar No-Show Tagger",
+    "nodes": [
+        {
+            "parameters": {
+                "content": "## Webinar No-Show Tagger\n\n**ONE-TIME SETUP in Set: Config node:**\n- kit_api_secret: Kit \u003e Settings \u003e Advanced \u003e API Secret\n- webinar_attended_tag_id: Kit \u003e Tags \u003e click tag \u003e copy ID from URL\n\nno-show tag is already set to ID 19804957.\n\n**Flow:**\n1. Gets all Kit subscribers with webinar-attended tag\n2. Gets Postgres registrants from last 7 days\n3. Per registrant: NOT in attended list? Adds no-show tag\n4. Already attended? Skips silently\n\nRuns every Monday at 9am. 1 per second rate limit.",
+                "height": 400,
+                "width": 500,
+                "color": 5
+            },
+            "id": "sticky-ns-main",
+            "name": "Sticky: Setup",
+            "type": "n8n-nodes-base.stickyNote",
+            "typeVersion": 1,
+            "position": [
+                -240,
+                -320
+            ]
+        },
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "weeks",
+                            "triggerAtDay": [
+                                1
+                            ],
+                            "triggerAtHour": 9
+                        }
+                    ]
+                }
+            },
+            "id": "1edb3f58-9c7c-4075-ba28-120ae71a6bd3",
+            "name": "Weekly Schedule",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.2,
+            "position": [
+                0,
+                0
+            ]
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "value": "KIT_API_SECRET",
+                            "name": "kit_api_secret"
+                        },
+                        {
+                            "value": "WEBINAR_ATTENDED_TAG_ID",
+                            "name": "webinar_attended_tag_id"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "set-config-ns-001",
+            "name": "Set: Config",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                256,
+                0
+            ]
+        },
+        {
+            "parameters": {
+                "url": "={{ \u0027https://api.convertkit.com/v3/subscribers?api_secret=\u0027 + $json.kit_api_secret + \u0027\u0026tag_id=\u0027 + $json.webinar_attended_tag_id + \u0027\u0026per_page=1000\u0027 }}",
+                "options": {}
+            },
+            "id": "http-kit-attended-001",
+            "name": "HTTP: Kit -- Get Attended Subscribers",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                512,
+                0
+            ],
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT email, first_name, webinar_id FROM webinar_registrants WHERE registered_at \u003e= NOW() - INTERVAL \u00277 days\u0027 ORDER BY registered_at DESC",
+                "options": {}
+            },
+            "id": "f5d3a494-426a-4c8b-bd2e-691eb3c300fa",
+            "name": "Get Registrants (Last 7 Days)",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.6,
+            "position": [
+                768,
+                0
+            ],
+            "executeOnce": true,
+            "credentials": {
+                "postgres": {
+                    "id": "vHzmmnuirqKCSruC",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const subs = ($(\"HTTP: Kit -- Get Attended Subscribers\").first().json.subscribers || []);\nconst attendedEmails = new Set(subs.map(s =\u003e (s.email_address || \"\").toLowerCase().trim()));\nconst email = ($json.email || \"\").toLowerCase().trim();\nreturn [{ json: { email: $json.email, first_name: $json.first_name || \"\", webinar_id: $json.webinar_id || \"\", is_attended: attendedEmails.has(email) ? 1 : 0 } }];"
+            },
+            "id": "code-flag-attended-001",
+            "name": "Code: Flag Attended Registrants",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1024,
+                0
+            ]
+        },
+        {
+            "parameters": {
+                "batchSize": 1,
+                "options": {}
+            },
+            "id": "split-noshow-001",
+            "name": "Split In Batches: 1",
+            "type": "n8n-nodes-base.splitInBatches",
+            "typeVersion": 3,
+            "position": [
+                1280,
+                0
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": false,
+                        "leftValue": "",
+                        "typeValidation": "loose",
+                        "version": 2
+                    },
+                    "conditions": [
+                        {
+                            "operator": {
+                                "operation": "gt",
+                                "type": "number"
+                            },
+                            "rightValue": 0,
+                            "id": "attended-check",
+                            "leftValue": "{{ $json.is_attended }}"
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "id": "d7d2e6bb-9f3f-458f-b584-75a163d479bf",
+            "name": "IF: Is Attended?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.2,
+            "position": [
+                1536,
+                0
+            ]
+        },
+        {
+            "parameters": {
+                "resource": "tagSubscriber",
+                "operation": "add",
+                "tagId": 19804957,
+                "email": "={{ $json.email }}",
+                "additionalFields": {}
+            },
+            "id": "dd222756-5dd8-46c3-86e5-70080f866e6e",
+            "name": "Add No-Show Tag",
+            "type": "n8n-nodes-base.convertKit",
+            "typeVersion": 1,
+            "position": [
+                1792,
+                192
+            ],
+            "onError": "continueRegularOutput",
+            "credentials": {
+                "convertKitApi": {
+                    "id": "FvJ5jXT6LL5kC5x3",
+                    "name": "ConvertKit account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "amount": 1,
+                "unit": "seconds"
+            },
+            "id": "wait-noshow-loop-001",
+            "name": "Wait: 1 Second",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1,
+            "position": [
+                2048,
+                0
+            ],
+            "webhookId": "dd55ee66-ff77-aa88-bb99-cc0011223344"
+        }
+    ],
+    "connections": {
+        "Weekly Schedule": {
+            "main": [
+                {
+                    "node": "Set: Config",
+                    "type": "main",
+                    "index": 0
+                }
+            ]
+        },
+        "Set: Config": {
+            "main": [
+                {
+                    "node": "HTTP: Kit -- Get Attended Subscribers",
+                    "type": "main",
+                    "index": 0
+                }
+            ]
+        },
+        "HTTP: Kit -- Get Attended Subscribers": {
+            "main": [
+                {
+                    "node": "Get Registrants (Last 7 Days)",
+                    "type": "main",
+                    "index": 0
+                }
+            ]
+        },
+        "Get Registrants (Last 7 Days)": {
+            "main": [
+                {
+                    "node": "Code: Flag Attended Registrants",
+                    "type": "main",
+                    "index": 0
+                }
+            ]
+        },
+        "Code: Flag Attended Registrants": {
+            "main": [
+                {
+                    "node": "Split In Batches: 1",
+                    "type": "main",
+                    "index": 0
+                }
+            ]
+        },
+        "Split In Batches: 1": {
+            "main": [
+                [
+                    {
+                        "node": "IF: Is Attended?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        },
+        "IF: Is Attended?": {
+            "main": [
+                [
+                    {
+                        "node": "Wait: 1 Second",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Add No-Show Tag",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Add No-Show Tag": {
+            "main": [
+                {
+                    "node": "Wait: 1 Second",
+                    "type": "main",
+                    "index": 0
+                }
+            ]
+        },
+        "Wait: 1 Second": {
+            "main": [
+                {
+                    "node": "Split In Batches: 1",
+                    "type": "main",
+                    "index": 0
+                }
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "pinData": {},
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "8b0968e82080ca3a539101af649065d63cbf690891f13b85ab9a36398e21d5e8"
+    }
+}

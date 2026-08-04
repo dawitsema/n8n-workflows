@@ -1,0 +1,161 @@
+﻿{
+    "name":  "Sync Kit Attended Subscribers to Postgres",
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "content":  "## Sync Kit Attended Subscribers to Postgres\n\n**Setup:**\n1. Configure kit_api_secret and webinar_attended_tag_id in **Set: Config**.\n2. Uses existing Postgres credential (\u000bHzmmnuirqKCSruC).\n\n**What it does:**\n1. Fetches all Kit subscribers with tag webinar-attended.\n2. Updates Postgres webinar_registrants table setting \u0007ttended = true (or inserts if needed).",
+                                         "height":  260,
+                                         "width":  450,
+                                         "color":  5
+                                     },
+                      "id":  "sticky-sync-attended",
+                      "name":  "Sticky: Notes",
+                      "type":  "n8n-nodes-base.stickyNote",
+                      "typeVersion":  1,
+                      "position":  [
+                                       -240,
+                                       -200
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+
+                                     },
+                      "id":  "manual-trigger-001",
+                      "name":  "When clicking \u0027Execute Workflow\u0027",
+                      "type":  "n8n-nodes-base.manualTrigger",
+                      "typeVersion":  1,
+                      "position":  [
+                                       0,
+                                       0
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "values":  {
+                                                        "string":  [
+                                                                       {
+                                                                           "value":  "YOUR_KIT_API_SECRET",
+                                                                           "name":  "kit_api_secret"
+                                                                       },
+                                                                       {
+                                                                           "value":  "YOUR_WEBINAR_ATTENDED_TAG_ID",
+                                                                           "name":  "webinar_attended_tag_id"
+                                                                       }
+                                                                   ]
+                                                    },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "set-config-sync-001",
+                      "name":  "Set: Config",
+                      "type":  "n8n-nodes-base.set",
+                      "typeVersion":  1,
+                      "position":  [
+                                       220,
+                                       0
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "url":  "={{ \u0027https://api.convertkit.com/v3/subscribers?api_secret=\u0027 + $json.kit_api_secret + \u0027\u0026tag_id=\u0027 + $json.webinar_attended_tag_id + \u0027\u0026per_page=1000\u0027 }}",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "http-get-kit-attended",
+                      "name":  "HTTP: Kit -- Get Attended Subscribers",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  3,
+                      "position":  [
+                                       440,
+                                       0
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "const subscribers = $input.first().json.subscribers || [];\nif (!subscribers.length) return [];\nreturn subscribers.map(s =\u003e ({ json: { email: s.email_address, first_name: s.first_name || \"\", kit_id: s.id } }));"
+                                     },
+                      "id":  "code-split-subscribers",
+                      "name":  "Code: Split to Items",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       660,
+                                       0
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "executeQuery",
+                                         "query":  "UPDATE webinar_registrants SET attended = true WHERE LOWER(email) = LOWER(\u0027{{ $json.email }}\u0027);",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "postgres-update-attended",
+                      "name":  "Postgres: Mark Attended",
+                      "type":  "n8n-nodes-base.postgres",
+                      "typeVersion":  2.6,
+                      "position":  [
+                                       880,
+                                       0
+                                   ],
+                      "credentials":  {
+                                          "postgres":  {
+                                                           "id":  "vHzmmnuirqKCSruC",
+                                                           "name":  "Postgres account"
+                                                       }
+                                      }
+                  }
+              ],
+    "connections":  {
+                        "When clicking \u0027Execute Workflow\u0027":  {
+                                                                           "main":  [
+                                                                                        {
+                                                                                            "node":  "Set: Config",
+                                                                                            "type":  "main",
+                                                                                            "index":  0
+                                                                                        }
+                                                                                    ]
+                                                                       },
+                        "Set: Config":  {
+                                            "main":  [
+                                                         {
+                                                             "node":  "HTTP: Kit -- Get Attended Subscribers",
+                                                             "type":  "main",
+                                                             "index":  0
+                                                         }
+                                                     ]
+                                        },
+                        "HTTP: Kit -- Get Attended Subscribers":  {
+                                                                      "main":  [
+                                                                                   {
+                                                                                       "node":  "Code: Split to Items",
+                                                                                       "type":  "main",
+                                                                                       "index":  0
+                                                                                   }
+                                                                               ]
+                                                                  },
+                        "Code: Split to Items":  {
+                                                     "main":  [
+                                                                  {
+                                                                      "node":  "Postgres: Mark Attended",
+                                                                      "type":  "main",
+                                                                      "index":  0
+                                                                  }
+                                                              ]
+                                                 }
+                    },
+    "settings":  {
+                     "executionOrder":  "v1"
+                 },
+    "pinData":  {
+
+                },
+    "meta":  {
+                 "templateCredsSetupCompleted":  true,
+                 "instanceId":  "8b0968e82080ca3a539101af649065d63cbf690891f13b85ab9a36398e21d5e8"
+             }
+}
